@@ -24,7 +24,7 @@ async function main() {
   const fund = new ethers.Contract(contractAddress, contractABI, signer);
 
   // Define temple address and donation amount (in wei)
-  const templeAddress = "0xaD8Cb6a8803AD33990c2C77c1C3414810096f41F"; // replace with actual
+  const templeAddress = "0x1f8be1869DEE8b8758fb1aB1a3b632D0a61eBE35"; // replace with actual
   const amountInEther = "0.01"; // donation amount
 
   // Send donation transaction

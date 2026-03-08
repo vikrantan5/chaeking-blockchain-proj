@@ -18,7 +18,7 @@ async function main() {
 
   const fund = new ethers.Contract(contractAddress, contractABI, provider);
 
-  const templeAddress = "0xaD8Cb6a8803AD33990c2C77c1C3414810096f41F"; // replace
+  const templeAddress = "0x1f8be1869DEE8b8758fb1aB1a3b632D0a61eBE35"; // replace
 
   const balance = await fund.getTempleEthBalance(templeAddress);
   console.log(`Temple ${templeAddress} ETH Balance: ${ethers.formatEther(balance)} ETH`);
