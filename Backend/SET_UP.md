@@ -29,32 +29,7 @@
 ### **Modified Files:**
 
 #### 1. `/app/backend/.env` (CREATED/OVERWRITTEN)
-```env
-MONGODB_URI=mongodb+srv://e-com:vikrant123@cluster0.8fq8yez.mongodb.net/blockchaincheck?appName=Cluster0
-PORT=5050
-CORS_ORIGIN=http://localhost:3000
-ACCESS_TOKEN_SECRET=your_random_access_token_secret_key_here
-ACCESS_TOKEN_EXPIRY=15m
-REFRESH_TOKEN_SECRET=your_random_refresh_token_secret_key_here
-REFRESH_TOKEN_EXPIRY=7d
 
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
-PRIVATE_KEY=53c5cdcd3d8e5f5cc714586bec2acea9b2eb53bac6cd830d8d3a17b1fc9d779c
-TEMPLE_PRIVATE_KEY=53c5cdcd3d8e5f5cc714586bec2acea9b2eb53bac6cd830d8d3a17b1fc9d779c
-DONOR_PRIVATE_KEY=53c5cdcd3d8e5f5cc714586bec2acea9b2eb53bac6cd830d8d3a17b1fc9d779c
-POLYGONSCAN_API_KEY=6M82NRGSRJRPM27VKCI9YD1BRIPEE8HR98
-
-CLOUDINARY_API_KEY=132399656745111
-CLOUDINARY_API_SECRET=za9Ay1aldjmmF3iF8XIiS2p56RI
-
-EMAIL_USER=skypelexicon@gmail.com
-EMAIL_PASS=gpysncalejqxkcee
-
-SUPERADMIN_NAME=Vikrant Singh
-SUPERADMIN_EMAIL=vikrantsinghan5@gmail.com
-SUPERADMIN_PASSWORD=SecurePassword123!
-SUPERADMIN_PHONE=+918240723013
-SUPERADMIN_WALLET=0x70dCd8E3E83EF64B70C9DAFC360572f266682f6F
 ```
 **Purpose**: All environment variables for blockchain and app configuration
 
