@@ -26,6 +26,9 @@ import templeDetailsRouter from "./routes/templeDetails.route.js"
 import templeReviewRouter from "./routes/reviews.route.js"
 import templeCarouselRouter from "./routes/carousel.route.js"
 import transactionRouter from "./routes/transaction.route.js";
+import ngoRouter from "./routes/ngo.route.js";
+import fundraisingCaseRouter from "./routes/fundraisingCase.route.js";
+import productRouter from "./routes/product.route.js";
 
 import { errorHandler } from "./utils/errorHandler.js"
 
@@ -38,6 +41,9 @@ app.use("/api/v1/templeDetails", templeDetailsRouter);
 app.use("/api/v1/reviews", templeReviewRouter);
 app.use("/api/v1/carousel", templeCarouselRouter);
 app.use("/api/v1/transactions", transactionRouter);
+app.use("/api/v1/ngos", ngoRouter);
+app.use("/api/v1/cases", fundraisingCaseRouter);
+app.use("/api/v1/products", productRouter);
 
 app.use(errorHandler);
 

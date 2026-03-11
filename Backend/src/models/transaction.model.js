@@ -4,7 +4,7 @@ const transactionSchema = new Schema(
   {
     transactionType: {
       type: String,
-      enum: ["transfer", "temple-registration", "withdrawal"],
+        enum: ["transfer", "ngo-registration", "withdrawal", "case-donation", "product-donation"],
       required: true,
     },
     sender: {
@@ -16,7 +16,7 @@ const transactionSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: function () {
-        return this.transactionType !== "withdrawal";
+        return this.transactionType !== "ngo-registration";
       },
     },
     amount: {
@@ -49,8 +49,29 @@ const transactionSchema = new Schema(
       type: String,
       required: function () {
         // required for transfer and withdrawal only
-        return this.transactionType !== "temple-registration";
+        return this.transactionType !== "ngo-registration";
       },
+    },
+    // Reference to fundraising case (if case donation)
+    fundraisingCase: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FundraisingCase",
+      required: function () {
+        return this.transactionType === "case-donation";
+      },
+    },
+    // Reference to product (if product donation)
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: function () {
+        return this.transactionType === "product-donation";
+      },
+      },
+    // Reference to NGO
+    ngo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "NGO",
     },
     cryptoType: {
       type: String,

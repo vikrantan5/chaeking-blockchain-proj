@@ -30,7 +30,7 @@ const userSchema = new Schema({
     role: {
         type: String,
         required: true,
-        enum: ["superAdmin", "templeAdmin", "user"],
+         enum: ["superAdmin", "ngoAdmin", "user"],
         default: "user",
     },
     refreshToken: {
@@ -50,10 +50,10 @@ const userSchema = new Schema({
         type: Date,
         select: false,
     },
-    templeName: {
+      ngoName: {
         type: String,
     },
-    templeLocation: {
+    ngoLocation: {
         type: String,
     },
     status: {
