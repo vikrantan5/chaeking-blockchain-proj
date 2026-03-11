@@ -46,9 +46,11 @@ async function main() {
 console.log("Network fee data:", feeData);
 
 const overrides = {
-  maxPriorityFeePerGas: feeData.maxPriorityFeePerGas*2n, // give 2x tip
-  maxFeePerGas: feeData.maxFeePerGas*2n                  // double cap
+   maxPriorityFeePerGas: feeData.maxPriorityFeePerGas, // use normal tip
+  maxFeePerGas: feeData.maxFeePerGas,                  // use normal cap
+  gasLimit: 3000000  // Set reasonable gas limit
 };
+
 
 
   const fund = await TempleFund.deploy(templeRegistryAddress, overrides);
