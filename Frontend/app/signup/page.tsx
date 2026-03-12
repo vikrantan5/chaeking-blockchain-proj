@@ -20,7 +20,7 @@ import { useMetamask } from "../hooks/useMetamask";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ngo-fund-tracker.preview.emergentagent.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5050/api/v1';
 
 export default function SignupPage() {
   const router = useRouter();

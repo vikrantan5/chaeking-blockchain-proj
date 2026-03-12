@@ -40,7 +40,7 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
     }
 
     // Validate email format
-    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         throw new ApiError(400, "Invalid email format");
     }

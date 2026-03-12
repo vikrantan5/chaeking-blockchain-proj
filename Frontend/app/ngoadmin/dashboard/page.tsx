@@ -79,17 +79,18 @@ export default function NGOAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+<div className="min-h-screen bg-gray-50" data-testid="ngoadmin-dashboard-page">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">NGO Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900" data-testid="ngoadmin-dashboard-title">NGO Dashboard</h1>
             <p className="text-sm text-gray-600">{ngoData.ngoName}</p>
           </div>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+            data-testid="ngoadmin-logout-button"
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -102,22 +103,29 @@ export default function NGOAdminDashboard() {
         {/* NGO Status */}
         {ngoData.approvalStatus === 'pending' && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-800">⏳ Your NGO registration is pending approval from Super Admin</p>
+            <p className="text-yellow-800" data-testid="ngoadmin-status-pending">Your NGO registration is pending approval from Super Admin.</p>
           </div>
         )}
         {ngoData.approvalStatus === 'rejected' && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">❌ Your NGO registration was rejected. Reason: {ngoData.rejectionReason}</p>
+ <p className="text-red-800" data-testid="ngoadmin-status-rejected">Your NGO registration was rejected. Reason: {ngoData.rejectionReason}</p>
           </div>
         )}
         {ngoData.approvalStatus === 'approved' && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-800">✅ Your NGO is approved and active!</p>
+              <p className="text-green-800" data-testid="ngoadmin-status-approved">Your NGO is approved and active.</p>
           </div>
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {ngoData.approvalStatus !== 'approved' ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6" data-testid="ngoadmin-awaiting-approval-card">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Approval Required</h3>
+            <p className="text-gray-600">You can complete your profile and receive donations once the Super Admin approves your NGO registration.</p>
+          </div>
+        ) : (
+          <>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-testid="ngoadmin-stats-grid">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-green-100 rounded-lg">
@@ -125,7 +133,7 @@ export default function NGOAdminDashboard() {
               </div>
             </div>
             <p className="text-gray-600 text-sm mb-1">Total Donations</p>
-            <p className="text-2xl font-bold text-gray-900">${stats.totalDonations.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-gray-900" data-testid="ngoadmin-total-donations-value">${stats.totalDonations.toFixed(2)}</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -135,7 +143,7 @@ export default function NGOAdminDashboard() {
               </div>
             </div>
             <p className="text-gray-600 text-sm mb-1">Active Cases</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.activeCases}</p>
+          <p className="text-2xl font-bold text-gray-900" data-testid="ngoadmin-active-cases-value">{stats.activeCases}</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -145,7 +153,7 @@ export default function NGOAdminDashboard() {
               </div>
             </div>
             <p className="text-gray-600 text-sm mb-1">Completed Cases</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.completedCases}</p>
+            <p className="text-2xl font-bold text-gray-900" data-testid="ngoadmin-completed-cases-value">{stats.completedCases}</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -155,7 +163,7 @@ export default function NGOAdminDashboard() {
               </div>
             </div>
             <p className="text-gray-600 text-sm mb-1">Products</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalProducts}</p>
+            <p className="text-2xl font-bold text-gray-900" data-testid="ngoadmin-total-products-value">{stats.totalProducts}</p>
           </div>
         </div>
 
@@ -201,22 +209,27 @@ export default function NGOAdminDashboard() {
           <button
             onClick={() => router.push("/cases")}
             className="p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center font-medium"
+            data-testid="ngoadmin-view-cases-button"
           >
             View Fundraising Cases
           </button>
           <button
             onClick={() => router.push("/products")}
             className="p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-center font-medium"
+              data-testid="ngoadmin-view-products-button"
           >
             View Products
           </button>
           <button
             onClick={() => router.push(`/ngos/${ngoData.slug}`)}
             className="p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center font-medium"
+            data-testid="ngoadmin-view-profile-button"
           >
             View Public Profile
           </button>
         </div>
+        </>
+        )}
       </main>
     </div>
   );

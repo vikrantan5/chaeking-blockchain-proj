@@ -114,7 +114,7 @@ export default function NGODetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+   <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50" data-testid="ngo-detail-page">
       {/* Hero Section with Cover Image */}
       <div className="relative h-96 bg-gradient-to-r from-blue-600 to-indigo-700">
         {ngo.coverImage ? (
@@ -134,6 +134,7 @@ export default function NGODetailPage() {
         <button
           onClick={() => router.push("/ngos")}
           className="absolute top-8 left-8 flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all"
+          data-testid="ngo-detail-back-button"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to NGOs
@@ -146,7 +147,7 @@ export default function NGODetailPage() {
               <CheckCircle className="w-6 h-6 text-green-400 mr-2" />
               <span className="text-green-400 font-semibold">Verified NGO</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="ngo-detail-name">
               {ngo.ngoName}
             </h1>
             <div className="flex items-center text-white/90">
@@ -167,7 +168,7 @@ export default function NGODetailPage() {
             {/* About Section */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">About Us</h2>
-              <p className="text-gray-600 leading-relaxed mb-6">{ngo.description}</p>
+  <p className="text-gray-600 leading-relaxed mb-6" data-testid="ngo-detail-description">{ngo.description}</p>
 
               <h3 className="text-xl font-bold text-gray-800 mb-3">Our Mission</h3>
               <p className="text-gray-600 leading-relaxed">{ngo.mission}</p>
@@ -269,6 +270,7 @@ export default function NGODetailPage() {
                       Amount (ETH)
                     </label>
                     <input
+                    data-testid="ngo-detail-donation-amount-input"
                       type="number"
                       step="0.001"
                       min="0"
@@ -283,6 +285,7 @@ export default function NGODetailPage() {
                     onClick={handleDonate}
                     disabled={isDonating || !donationAmount}
                     className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                     data-testid="ngo-detail-donate-button"
                   >
                     {isDonating ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

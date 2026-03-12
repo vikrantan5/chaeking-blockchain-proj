@@ -80,8 +80,8 @@ export default function NGOsPage() {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50" data-testid="ngos-list-page">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="ngos-list-heading">
               Support Verified NGOs
             </h1>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
@@ -98,6 +98,7 @@ export default function NGOsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <input
+               data-testid="ngos-search-input"
                 type="text"
                 placeholder="Search NGOs by name or description..."
                 value={searchQuery}
@@ -108,6 +109,7 @@ export default function NGOsPage() {
             <div className="relative">
               <Filter className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <select
+               data-testid="ngos-city-filter-select"
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
@@ -137,12 +139,13 @@ export default function NGOsPage() {
             <p className="text-gray-500">Try adjusting your search or filters</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="ngos-cards-grid">
             {filteredNgos.map((ngo) => (
               <div
                 key={ngo._id}
                 onClick={() => router.push(`/ngos/${ngo.slug}`)}
                 className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden group"
+                 data-testid={`ngo-card-${ngo._id}`}    
               >
                 {/* NGO Image */}
                 <div className="relative h-48 bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
@@ -161,7 +164,7 @@ export default function NGOsPage() {
 
                 {/* NGO Details */}
                 <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+                 <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors" data-testid={`ngo-card-name-${ngo._id}`}>
                     {ngo.ngoName}
                   </h3>
 
@@ -172,7 +175,7 @@ export default function NGOsPage() {
                     </span>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                 <p className="text-gray-600 text-sm mb-4 line-clamp-3" data-testid={`ngo-card-description-${ngo._id}`}>
                     {ngo.description}
                   </p>
 
@@ -198,7 +201,7 @@ export default function NGOsPage() {
                         {ngo.totalDonationsReceived || 0} ETH Raised
                       </span>
                     </div>
-                    <button className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200">
+                    <button className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200" data-testid={`ngo-card-donate-button-${ngo._id}`}>
                       <Heart className="w-4 h-4 mr-1" />
                       Donate
                     </button>
@@ -220,6 +223,7 @@ export default function NGOsPage() {
           <button
             onClick={() => router.push('/signup')}
             className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 shadow-lg"
+              data-testid="ngo-register-cta-button"
           >
             Register as NGO Owner
           </button>

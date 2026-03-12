@@ -9,15 +9,15 @@ import {
     deleteNGO,
     getNGODashboard
 } from "../controllers/ngo.controller.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+ import{ verifyJWT, optionalJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/role.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
 // Public routes
-router.route("/").get(getAllNGOs);
-router.route("/:id").get(getNGOById);
+router.route("/").get(optionalJWT, getAllNGOs);
+router.route("/:id").get(optionalJWT, getNGOById);
 
 // Protected routes
 router.route("/register").post(
@@ -51,8 +51,19 @@ router.route("/:ngoId/approve").post(
     authorizeRoles("superAdmin"),
     approveNGO
 );
+router.route("/approve/:ngoId").put(
+    verifyJWT,
+    authorizeRoles("superAdmin"),
+    approveNGO
+);
 
 router.route("/:ngoId/reject").post(
+    verifyJWT,
+    authorizeRoles("superAdmin"),
+    rejectNGO
+);
+
+router.route("/reject/:ngoId").put(
     verifyJWT,
     authorizeRoles("superAdmin"),
     rejectNGO

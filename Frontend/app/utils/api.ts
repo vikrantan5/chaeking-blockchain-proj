@@ -86,11 +86,19 @@ export const apiClient = {
   ngos: {
     getAll: async (params?: any) => {
       const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
-      const response = await fetch(`${API_BASE_URL}/ngos${queryString}`);
+       const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/ngos${queryString}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: 'include',
+      });
       return response.json();
     },
     getById: async (id: string) => {
-      const response = await fetch(`${API_BASE_URL}/ngos/${id}`);
+const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/ngos/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: 'include',
+      });
       return response.json();
     },
     register: async (formData: FormData) => {
@@ -105,8 +113,8 @@ export const apiClient = {
     },
     approve: async (ngoId: string, remarks: string) => {
       const token = sessionStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE_URL}/ngos/${ngoId}/approve`, {
-        method: 'POST',
+          const response = await fetch(`${API_BASE_URL}/ngos/approve/${ngoId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -118,8 +126,8 @@ export const apiClient = {
     },
     reject: async (ngoId: string, reason: string) => {
       const token = sessionStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE_URL}/ngos/${ngoId}/reject`, {
-        method: 'POST',
+  const response = await fetch(`${API_BASE_URL}/ngos/reject/${ngoId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,

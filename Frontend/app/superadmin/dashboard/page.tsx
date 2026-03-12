@@ -30,10 +30,14 @@ export default function SuperAdminDashboard() {
     try {
       // Fetch all NGOs
       const allNGOs = await apiClient.ngos.getAll({});
-      if (allNGOs.success) {
-        setNgos(allNGOs.data);
-        setPendingNGOs(allNGOs.data.filter((ngo: any) => ngo.approvalStatus === 'pending'));
-      }
+    if (allNGOs.success) {
+  const ngos = Array.isArray(allNGOs.data)
+    ? allNGOs.data
+    : allNGOs.data?.ngos || [];
+
+  setNgos(ngos);
+  setPendingNGOs(ngos.filter((ngo: any) => ngo.approvalStatus === "pending"));
+}
     } catch (err) {
       console.error("Error fetching dashboard:", err);
       toast.error("Error loading dashboard");
@@ -88,13 +92,13 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6" data-testid="superadmin-dashboard-page">
       <div className="container mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="w-10 h-10 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-800">Super Admin Dashboard</h1>
+             <h1 className="text-4xl font-bold text-gray-800" data-testid="superadmin-dashboard-title">Super Admin Dashboard</h1>
           </div>
           <p className="text-gray-600">Platform management and NGO oversight</p>
         </div>
@@ -106,7 +110,7 @@ export default function SuperAdminDashboard() {
               <span className="text-gray-600 text-sm font-medium">Total NGOs</span>
               <Building2 className="w-8 h-8 text-green-500" />
             </div>
-            <p className="text-3xl font-bold text-gray-800">{ngos.length}</p>
+           <p className="text-3xl font-bold text-gray-800" data-testid="superadmin-total-ngos-value">{ngos.length}</p>
             <p className="text-xs text-gray-500 mt-1">{approvedNGOs.length} approved, {pendingNGOs.length} pending</p>
           </div>
 
@@ -115,7 +119,7 @@ export default function SuperAdminDashboard() {
               <span className="text-gray-600 text-sm font-medium">Pending Approvals</span>
               <Clock className="w-8 h-8 text-orange-500" />
             </div>
-            <p className="text-3xl font-bold text-gray-800">{pendingNGOs.length}</p>
+               <p className="text-3xl font-bold text-gray-800" data-testid="superadmin-pending-ngos-value">{pendingNGOs.length}</p>
             <p className="text-xs text-orange-600 mt-1">Requires attention</p>
           </div>
 
@@ -124,7 +128,7 @@ export default function SuperAdminDashboard() {
               <span className="text-gray-600 text-sm font-medium">Total Raised</span>
               <DollarSign className="w-8 h-8 text-blue-500" />
             </div>
-            <p className="text-3xl font-bold text-gray-800">₹{totalDonations.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-gray-800" data-testid="superadmin-total-donations-value">₹{totalDonations.toLocaleString()}</p>
             <p className="text-xs text-gray-500 mt-1">Platform-wide</p>
           </div>
 
@@ -156,7 +160,7 @@ export default function SuperAdminDashboard() {
                 <div key={ngo._id} className="border border-gray-200 rounded-lg p-6 hover:border-orange-300 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">{ngo.ngoName}</h3>
+   <h3 className="text-xl font-bold text-gray-800 mb-2" data-testid={`pending-ngo-name-${ngo._id}`}>{ngo.ngoName}</h3>
                       <p className="text-gray-600 mb-3">{ngo.description}</p>
                       <div className="grid md:grid-cols-2 gap-4 text-sm">
                         <div>
@@ -180,6 +184,7 @@ export default function SuperAdminDashboard() {
                       <button
                         onClick={() => handleApproveNGO(ngo._id)}
                         className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center gap-2"
+                        data-testid={`pending-ngo-approve-${ngo._id}`}
                       >
                         <CheckCircle className="w-4 h-4" />
                         Approve
@@ -187,12 +192,14 @@ export default function SuperAdminDashboard() {
                       <button
                         onClick={() => handleRejectNGO(ngo._id)}
                         className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+                        data-testid={`pending-ngo-reject-${ngo._id}`}
                       >
                         Reject
                       </button>
                       <button
                         onClick={() => router.push(`/ngos/${ngo.slug}`)}
                         className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                          data-testid={`pending-ngo-view-${ngo._id}`}
                       >
                         View Details
                       </button>
@@ -205,7 +212,7 @@ export default function SuperAdminDashboard() {
         )}
 
         {/* All NGOs List */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
+   <div className="bg-white rounded-xl shadow-lg p-6" data-testid="superadmin-all-ngos-section">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">All NGOs</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -261,6 +268,7 @@ export default function SuperAdminDashboard() {
                       <button
                         onClick={() => router.push(`/ngos/${ngo.slug}`)}
                         className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                         data-testid={`ngo-row-view-${ngo._id}`}
                       >
                         View
                       </button>

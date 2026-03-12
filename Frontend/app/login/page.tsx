@@ -19,9 +19,29 @@ export default function UnifiedLogin() {
     { id: 'ngoAdmin' as const, label: 'NGO Owner', icon: Building2, color: 'green', gradient: 'from-green-500 to-emerald-500' },
     { id: 'superAdmin' as const, label: 'Super Admin', icon: Shield, color: 'purple', gradient: 'from-purple-500 to-pink-500' },
   ];
+   const roleStyles = {
+    user: {
+      tabActive: "border-blue-500 bg-blue-50",
+      iconActive: "text-blue-600",
+      textActive: "text-blue-700",
+      inputFocus: "focus:ring-blue-500 focus:border-blue-500"
+    },
+    ngoAdmin: {
+      tabActive: "border-green-500 bg-green-50",
+      iconActive: "text-green-600",
+      textActive: "text-green-700",
+      inputFocus: "focus:ring-green-500 focus:border-green-500"
+    },
+    superAdmin: {
+      tabActive: "border-purple-500 bg-purple-50",
+      iconActive: "text-purple-600",
+      textActive: "text-purple-700",
+      inputFocus: "focus:ring-purple-500 focus:border-purple-500"
+    }
+  } as const;
 
   const validateEmail = (email: string) => {
-    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
@@ -80,6 +100,7 @@ export default function UnifiedLogin() {
     }
   };
   const activeRoleData = roles.find(r => r.id === activeRole)!;
+   const activeRoleStyle = roleStyles[activeRole];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
@@ -108,15 +129,15 @@ export default function UnifiedLogin() {
                 disabled={isLoading}
                 className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                   activeRole === role.id
-                    ? `border-${role.color}-500 bg-${role.color}-50`
+                    ? roleStyles[role.id].tabActive
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <role.icon className={`w-5 h-5 mx-auto mb-1 ${
-                  activeRole === role.id ? `text-${role.color}-600` : 'text-gray-400'
+activeRole === role.id ? roleStyles[role.id].iconActive : 'text-gray-400'
                 }`} />
                 <span className={`text-xs font-medium ${
-                  activeRole === role.id ? `text-${role.color}-700` : 'text-gray-600'
+                  activeRole === role.id ? roleStyles[role.id].textActive : 'text-gray-600'
                 }`}>{role.label}</span>
               </button>
             ))}
@@ -132,10 +153,11 @@ export default function UnifiedLogin() {
               <div className="relative">
                 <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
+                data-testid="login-email-input"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-${activeRoleData.color}-500 focus:border-${activeRoleData.color}-500 outline-none ${
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none ${activeRoleStyle.inputFocus} ${
                     errors.email ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Enter your email"
@@ -151,10 +173,11 @@ export default function UnifiedLogin() {
               <div className="relative">
                 <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
+                  data-testid="login-password-input"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-${activeRoleData.color}-500 focus:border-${activeRoleData.color}-500 outline-none ${
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none ${activeRoleStyle.inputFocus} ${
                     errors.password ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Enter your password"
@@ -173,6 +196,7 @@ export default function UnifiedLogin() {
             </div>
 
             <button
+            data-testid="login-submit-button"
               onClick={handleLogin}
               disabled={isLoading}
               className={`w-full flex items-center justify-center px-8 py-3 bg-gradient-to-r ${activeRoleData.gradient} text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-medium transition-all duration-200`}

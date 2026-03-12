@@ -6,9 +6,13 @@ import jwt from "jsonwebtoken";
 // In-memory token blacklist (use Redis for production)
 const tokenBlacklist = new Set();
 
+const getTokenFromRequest = (req) =>
+    req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+
+
 export const verifyJWT = asyncHandler(async (req, _, next) => {
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+         const token = getTokenFromRequest(req)
 
         if (!token) {
             throw new ApiError(401, "Unautorized request")
@@ -40,3 +44,24 @@ export const blacklistToken = (token) => {
 export const isTokenBlacklisted = (token) => {
     return tokenBlacklist.has(token);
 };
+
+export const optionalJWT = asyncHandler(async (req, _, next) => {
+    const token = getTokenFromRequest(req);
+
+    if (!token || tokenBlacklist.has(token)) {
+        return next();
+    }
+
+    try {
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
+
+        if (user) {
+            req.user = user;
+        }
+    } catch {
+        // Ignore invalid/expired token for optional auth routes.
+    }
+
+    return next();
+});

@@ -6,11 +6,23 @@ import { jwtDecode } from "jwt-decode"
 export function middleware(request: NextRequest) {
     // Get the pathname of the request
     const path = request.nextUrl.pathname
+      // Legacy route migration
+    if (path === "/templelogin") {
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    if (path.startsWith("/templeadmin")) {
+        return NextResponse.redirect(new URL("/ngoadmin/dashboard", request.url));
+    }
+
+    if (path.startsWith("/temples")) {
+        return NextResponse.redirect(new URL(path.replace("/temples", "/ngos"), request.url));
+    }
 
     // Check if the path is public (login page)
     const isPublicPath =
         path === "/superadminlogin" ||
-        path === "/templelogin" ||
+        
         path === "/login";
 
     // Get the token from cookies
@@ -50,10 +62,7 @@ export function middleware(request: NextRequest) {
             return NextResponse.redirect(
                 new URL("/superadmin/dashboard", request.url)
             );
-        } else if (path === "/templelogin") {
-            return NextResponse.redirect(
-                new URL("/templeadmin/dashboard", request.url)
-            );
+        
         } else if (path === '/login') {
             return NextResponse.redirect(
                 new URL("/user/dashboard", request.url
@@ -74,10 +83,10 @@ export function middleware(request: NextRequest) {
         return response
     }
 
-    // If the path is templeadmin/dashboard or its subpaths and user is not authenticated, redirect to templeadmin login
-    if (path.startsWith("/templeadmin") && !isAuthenticated) {
+      // If the path is ngoadmin/dashboard or its subpaths and user is not authenticated, redirect to login
+    if (path.startsWith("/ngoadmin") && !isAuthenticated) {
         const response = NextResponse.redirect(
-            new URL("/templelogin", request.url)
+   new URL("/login", request.url)
         );
         response.cookies.delete("accessToken");
         response.cookies.delete("refreshToken");
@@ -101,8 +110,8 @@ export function middleware(request: NextRequest) {
 function handleExpiredTokenRedirect(path: string, request: NextRequest) {
     if (path.startsWith("/superadmin")) {
         return NextResponse.redirect(new URL("/superadminlogin", request.url));
-    } else if (path.startsWith("/templeadmin")) {
-        return NextResponse.redirect(new URL("/templelogin", request.url));
+ } else if (path.startsWith("/ngoadmin")) {
+        return NextResponse.redirect(new URL("/login", request.url));
     } else if (path.startsWith("/user")) {
         return NextResponse.redirect(new URL("/login", request.url));
     } else {
@@ -114,8 +123,13 @@ function handleExpiredTokenRedirect(path: string, request: NextRequest) {
 export const config = {
     matcher: [
         "/",
+        "/ngos/:path*",
         "/superadmin/:path*",
+        "/ngoadmin/:path*",
+        "/superadminlogin",
+        "/templelogin",
         "/templeadmin/:path*",
+        "/temples/:path*",
         "/user/:path*",
     ]
 }
