@@ -62,13 +62,19 @@ export default function SignupPage() {
     }
   }, [router]);
 
-  // Validation functions
-  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const validateMobile = (phone: string) => /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""));
-  const validatePassword = (password: string) =>
-    password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
-  const validateName = (name: string) =>
-    name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name);
+// Validation functions
+const validateEmail = (email: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const validateMobile = (phone: string) =>
+  /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""));
+
+const validatePassword = (password: string) =>
+  password.length >= 8 &&
+  /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
+
+const validateName = (name: string) =>
+  name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name);
 
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
@@ -122,7 +128,7 @@ export default function SignupPage() {
   const handleOtpPaste = (e: ClipboardEvent) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text").trim();
-    if (pastedData.length === 6 && /^\d+$/.test(pastedData)) {
+    if (pastedData.length === 6 && /^d+$/.test(pastedData)) {
       const newOtp = pastedData.split("");
       setOtp(newOtp);
       const lastInput = document.getElementById(`otp-${newOtp.length - 1}`);
@@ -143,7 +149,7 @@ export default function SignupPage() {
     if (currentStep === 1) {
       if (validateStep1()) await handleRegister();
     } else if (currentStep === 2 && userType === 'ngo') {
-      if (validateStep2()) setCurrentStep(3);
+ if (validateStep2()) await handleRegisterNGO();
     } else if (currentStep === 2 && userType === 'user') {
       await handleVerifyOtp();
     } else if (currentStep === 3 && userType === 'ngo') {
@@ -188,12 +194,77 @@ export default function SignupPage() {
           setCurrentStep(2);
         }
       } else {
-        // For NGO, just move to next step (NGO details)
+      // / For NGO, move to NGO details collection step
         setCurrentStep(2);
       }
     } catch (error) {
       console.error("Registration error:", error);
       toast.error("An error occurred while registering. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+   const handleRegisterNGO = async () => {
+    if (!validateStep2()) return;
+    setIsLoading(true);
+
+    try {
+      // Register NGO Owner with all details
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('phone', phone);
+      formData.append('password', password);
+      formData.append('ngoName', ngoName);
+      formData.append('registrationNumber', registrationNumber);
+      formData.append('description', description);
+      formData.append('mission', mission);
+      formData.append('walletAddress', ''); // Will be set later after wallet connection
+      
+      formData.append('address', JSON.stringify({
+        street,
+        city,
+        state,
+        country: 'India',
+        pincode
+      }));
+      
+      formData.append('contactDetails', JSON.stringify({
+        phone: ngoPhone,
+        email: ngoEmail,
+        website: website || ''
+      }));
+
+      if (coverImage) {
+        formData.append('coverImage', coverImage);
+      }
+
+      if (documents) {
+        Array.from(documents).forEach((doc) => {
+          formData.append('verificationDocuments', doc);
+        });
+      }
+
+      const response = await fetch(`${API_BASE_URL}/ngoAdmin/register`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        toast.error(result.message || "Error registering NGO.");
+        return;
+      }
+
+      if (result.success) {
+        toast.success("NGO registered! Please check your email for OTP.");
+        setCurrentStep(3); // Move to OTP verification
+      }
+    } catch (error) {
+      console.error("NGO registration error:", error);
+      toast.error("An error occurred while registering NGO. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -282,58 +353,24 @@ export default function SignupPage() {
           router.push("/user/dashboard");
         }
       } else {
-        // Register NGO Owner
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('email', email);
-        formData.append('phone', phone);
-        formData.append('password', password);
-        formData.append('ngoName', ngoName);
-        formData.append('registrationNumber', registrationNumber);
-        formData.append('description', description);
-        formData.append('mission', mission);
-        formData.append('walletAddress', account || '');
-        
-        formData.append('address', JSON.stringify({
-          street,
-          city,
-          state,
-          country: 'India',
-          pincode
-        }));
-        
-        formData.append('contactDetails', JSON.stringify({
-          phone: ngoPhone,
-          email: ngoEmail,
-          website: website || ''
-        }));
-
-        if (coverImage) {
-          formData.append('coverImage', coverImage);
-        }
-
-        if (documents) {
-          Array.from(documents).forEach((doc) => {
-            formData.append('verificationDocuments', doc);
-          });
-        }
-
-        const response = await fetch(`${API_BASE_URL}/ngoAdmin/register`, {
+        // Store wallet address for NGO Admin (user and NGO already created)
+        const response = await fetch(`${API_BASE_URL}/ngoAdmin/store-wallet-address`, {
           method: "POST",
           headers: {
+            "Content-Type": "application/json",
             "Authorization": `Bearer ${accessToken}`,
           },
-          body: formData,
+          body: JSON.stringify({ walletAddress: account }),
         });
 
         const result = await response.json();
         if (!response.ok) {
-          toast.error(result.message || "Error registering NGO.");
+          toast.error(result.message || "Error saving wallet address.");
           return;
         }
 
         if (result.success) {
-          toast.success("NGO registration submitted! Awaiting admin approval.");
+          toast.success("NGO registration completed! Awaiting admin approval.");
           router.push("/ngoadmin/dashboard");
         }
       }
