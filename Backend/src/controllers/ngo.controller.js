@@ -711,9 +711,20 @@ export const getNGODashboard = asyncHandler(async (req, res) => {
         ngo: {
             _id: ngo._id,
             ngoName: ngo.ngoName,
+             slug: ngo.slug,
+            registrationNumber: ngo.registrationNumber,
             approvalStatus: ngo.approvalStatus,
             coverImage: ngo.coverImage,
-            walletAddress: ngo.walletAddress
+            walletAddress: ngo.walletAddress,
+            address: ngo.address,
+            contactDetails: ngo.contactDetails,
+            description: ngo.description,
+            mission: ngo.mission,
+            focusAreas: ngo.focusAreas,
+            rejectionReason: ngo.rejectionReason,
+            approvalRemarks: ngo.approvalRemarks,
+            approvalDate: ngo.approvalDate,
+            totalDonationsReceived: ngo.totalDonationsReceived
         },
         stats: {
             totalDonations: totalDonationsResult[0]?.total || 0,
