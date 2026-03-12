@@ -1,73 +1,75 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, TrendingUp, Heart, Target, Package, Users, DollarSign, Activity, CheckCircle, Clock, XCircle } from "lucide-react";
-import { apiClient } from "../../utils/api";
 import { toast } from "react-toastify";
+import { Building2, TrendingUp, Users, Package, LogOut, Heart } from "lucide-react";
+import { apiClient } from "../../utils/api";
 
 export default function NGOAdminDashboard() {
   const router = useRouter();
   const [ngoData, setNgoData] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalDonations: 0, activeCases: 0, completedCases: 0, totalProducts: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const user = localStorage.getItem("user_data");
-    if (!user) {
+    const accessToken = sessionStorage.getItem("accessToken");
+    const userRole = localStorage.getItem("user_role");
+    
+    if (!accessToken || userRole !== "ngoAdmin") {
       router.push("/login");
       return;
     }
-    const userData = JSON.parse(user);
-    if (userData.role !== 'ngoAdmin') {
-      toast.error("Access denied. NGO Admin only.");
-      router.push("/");
-      return;
-    }
-    fetchNGODashboard();
-  }, []);
 
-  const fetchNGODashboard = async () => {
+    loadDashboardData();
+  }, [router]);
+
+  const loadDashboardData = async () => {
     try {
-      const result = await apiClient.ngos.getAll({ status: 'approved' });
-      if (result.success && result.data.length > 0) {
-        // For demo, using the first NGO. In production, filter by logged-in user
-        setNgoData(result.data[0]);
-        // Mock stats - in production, these would come from backend
-        setStats({
-          totalDonations: result.data[0].totalDonationsReceived || 0,
-          activeCases: 3,
-          completedCases: 5,
-          totalProducts: 8,
-          totalDonors: 127,
-          monthlyGrowth: 15.3,
-        });
+      const result = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ngos/dashboard`, {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
+        },
+        credentials: 'include'
+      });
+      const data = await result.json();
+      
+      if (data.success) {
+        setNgoData(data.data.ngo);
+        setStats(data.data.stats);
       }
-    } catch (err) {
-      console.error("Error fetching dashboard:", err);
-      toast.error("Error loading dashboard");
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+      toast.error("Failed to load dashboard data");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
+  const handleLogout = () => {
+    sessionStorage.clear();
+    localStorage.clear();
+    toast.success("Logged out successfully");
+    router.push("/login");
+  };
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
       </div>
     );
   }
 
   if (!ngoData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">No NGO Found</h2>
-          <p className="text-gray-600 mb-4">Please register your NGO first</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">No NGO Found</h2>
+          <p className="text-gray-600 mb-6">You need to register an NGO first</p>
           <button
-            onClick={() => router.push("/ngo-registration")}
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:opacity-90"
+            onClick={() => router.push("/ngos/register")}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             Register NGO
           </button>
@@ -77,173 +79,145 @@ export default function NGOAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
-      <div className="container mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Building2 className="w-10 h-10 text-green-600" />
-            <div>
-              <h1 className="text-4xl font-bold text-gray-800">{ngoData.ngoName}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-green-600 font-medium">Verified NGO</span>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">NGO Dashboard</h1>
+            <p className="text-sm text-gray-600">{ngoData.ngoName}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* NGO Status */}
+        {ngoData.approvalStatus === 'pending' && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800">⏳ Your NGO registration is pending approval from Super Admin</p>
+          </div>
+        )}
+        {ngoData.approvalStatus === 'rejected' && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800">❌ Your NGO registration was rejected. Reason: {ngoData.rejectionReason}</p>
+          </div>
+        )}
+        {ngoData.approvalStatus === 'approved' && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-800">✅ Your NGO is approved and active!</p>
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Heart className="w-6 h-6 text-green-600" />
               </div>
             </div>
+            <p className="text-gray-600 text-sm mb-1">Total Donations</p>
+            <p className="text-2xl font-bold text-gray-900">${stats.totalDonations.toFixed(2)}</p>
           </div>
-          <p className="text-gray-600">{ngoData.mission}</p>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-gray-600 text-sm mb-1">Active Cases</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.activeCases}</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Users className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+            <p className="text-gray-600 text-sm mb-1">Completed Cases</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.completedCases}</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <Package className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-gray-600 text-sm mb-1">Products</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.totalProducts}</p>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm font-medium">Total Raised</span>
-              <DollarSign className="w-8 h-8 text-green-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-800">₹{stats?.totalDonations?.toLocaleString() || 0}</p>
-            <p className="text-xs text-green-600 mt-1 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-1" />
-              +{stats?.monthlyGrowth || 0}% this month
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm font-medium">Total Donors</span>
-              <Users className="w-8 h-8 text-blue-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-800">{stats?.totalDonors || 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Lifetime supporters</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm font-medium">Active Cases</span>
-              <Target className="w-8 h-8 text-purple-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-800">{stats?.activeCases || 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Fundraising campaigns</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm font-medium">Completed</span>
-              <CheckCircle className="w-8 h-8 text-orange-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-800">{stats?.completedCases || 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Successful cases</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-pink-500">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm font-medium">Products</span>
-              <Package className="w-8 h-8 text-pink-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-800">{stats?.totalProducts || 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Available items</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-indigo-500">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm font-medium">Impact Score</span>
-              <Activity className="w-8 h-8 text-indigo-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-800">8.5</p>
-            <p className="text-xs text-gray-500 mt-1">Out of 10</p>
-          </div>
-        </div>
-
-        {/* NGO Info Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">NGO Information</h2>
-          <div className="grid md:grid-cols-2 gap-6">
+        {/* NGO Information */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">NGO Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-bold text-gray-700 mb-3">Contact Details</h3>
-              <div className="space-y-2 text-sm">
-                <p><span className="text-gray-600">Email:</span> <span className="font-medium">{ngoData.contactDetails?.email}</span></p>
-                <p><span className="text-gray-600">Phone:</span> <span className="font-medium">{ngoData.contactDetails?.phone}</span></p>
-                <p><span className="text-gray-600">Website:</span> <span className="font-medium">{ngoData.contactDetails?.website || 'N/A'}</span></p>
-              </div>
+              <p className="text-sm text-gray-600">Registration Number</p>
+              <p className="text-gray-900 font-medium">{ngoData.registrationNumber}</p>
             </div>
             <div>
-              <h3 className="font-bold text-gray-700 mb-3">Address</h3>
-              <p className="text-sm text-gray-600">
-                {ngoData.address?.street}, {ngoData.address?.city}<br />
-                {ngoData.address?.state} - {ngoData.address?.pincode}<br />
-                {ngoData.address?.country}
-              </p>
+              <p className="text-sm text-gray-600">Wallet Address</p>
+              <p className="text-gray-900 font-medium text-sm">{ngoData.walletAddress}</p>
             </div>
             <div>
-              <h3 className="font-bold text-gray-700 mb-3">Focus Areas</h3>
-              <div className="flex flex-wrap gap-2">
-                {ngoData.focusAreas?.map((area: string, index: number) => (
-                  <span key={index} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                    {area}
-                  </span>
-                ))}
-              </div>
+              <p className="text-sm text-gray-600">Location</p>
+              <p className="text-gray-900 font-medium">{ngoData.address.city}, {ngoData.address.state}</p>
             </div>
             <div>
-              <h3 className="font-bold text-gray-700 mb-3">Registration</h3>
-              <p className="text-sm"><span className="text-gray-600">Reg. No:</span> <span className="font-medium">{ngoData.registrationNumber}</span></p>
-              <p className="text-sm"><span className="text-gray-600">Wallet:</span> <span className="font-mono text-xs">{ngoData.walletAddress?.slice(0, 10)}...{ngoData.walletAddress?.slice(-8)}</span></p>
+              <p className="text-sm text-gray-600">Contact Email</p>
+              <p className="text-gray-900 font-medium">{ngoData.contactDetails.email}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-sm text-gray-600 mb-2">Mission</p>
+            <p className="text-gray-900">{ngoData.mission}</p>
+          </div>
+          <div className="mt-4">
+            <p className="text-sm text-gray-600 mb-2">Focus Areas</p>
+            <div className="flex flex-wrap gap-2">
+              {ngoData.focusAreas.map((area: string, idx: number) => (
+                <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                  {area}
+                </span>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Actions</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            <button
-              onClick={() => toast.info("Case creation feature coming soon")}
-              className="p-6 border-2 border-purple-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all text-left group"
-            >
-              <Target className="w-10 h-10 text-purple-500 mb-3 group-hover:scale-110 transition-transform" />
-              <h3 className="font-bold text-gray-800 mb-1">Create Fundraising Case</h3>
-              <p className="text-sm text-gray-600">Start a new campaign</p>
-            </button>
-
-            <button
-              onClick={() => toast.info("Product management coming soon")}
-              className="p-6 border-2 border-orange-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all text-left group"
-            >
-              <Package className="w-10 h-10 text-orange-500 mb-3 group-hover:scale-110 transition-transform" />
-              <h3 className="font-bold text-gray-800 mb-1">Manage Products</h3>
-              <p className="text-sm text-gray-600">Update donation items</p>
-            </button>
-
-            <button
-              onClick={() => router.push(`/ngos/${ngoData.slug}`)}
-              className="p-6 border-2 border-green-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all text-left group"
-            >
-              <Building2 className="w-10 h-10 text-green-500 mb-3 group-hover:scale-110 transition-transform" />
-              <h3 className="font-bold text-gray-800 mb-1">View Public Profile</h3>
-              <p className="text-sm text-gray-600">See how donors see you</p>
-            </button>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={() => router.push("/cases")}
+            className="p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center font-medium"
+          >
+            View Fundraising Cases
+          </button>
+          <button
+            onClick={() => router.push("/products")}
+            className="p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-center font-medium"
+          >
+            View Products
+          </button>
+          <button
+            onClick={() => router.push(`/ngos/${ngoData.slug}`)}
+            className="p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center font-medium"
+          >
+            View Public Profile
+          </button>
         </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Recent Activity</h2>
-          <div className="space-y-4">
-            {[1, 2, 3].map((_, index) => (
-              <div key={index} className="flex items-center gap-4 p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <Heart className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800">New donation received</p>
-                  <p className="text-sm text-gray-600">From anonymous donor - ₹1,000</p>
-                </div>
-                <span className="text-xs text-gray-500">2h ago</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
