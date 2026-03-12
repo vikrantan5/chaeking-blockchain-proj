@@ -11,8 +11,8 @@ const resendOtpUtility = async (user, emailSubject) => {
         throw new ApiError(400, `You can resend OTP only after ${Math.ceil((60000 - (currentTime - lastOtpSentTime)) / 1000)} seconds. `);
     }
 
-    // Generate a new OTP
-    const otp = crypto.randomBytes(3).toString("hex");
+ // Generate a new 6-digit numeric OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetOtp = otp;
     user.resetOtpExpires = Date.now() + 5 * 60 * 1000; // OTP valid for 5 minutes
     user.lastOtpSentAt = Date.now(); 

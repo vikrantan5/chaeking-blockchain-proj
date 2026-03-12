@@ -129,8 +129,8 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Something went wrong while registering the NGO");
     }
 
-    // Generate OTP for email verification
-    const otp = crypto.randomBytes(3).toString("hex");
+   // Generate 6-digit numeric OTP for email verification
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetOtp = otp;
     user.resetOtpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
     user.lastOtpSentAt = Date.now();
