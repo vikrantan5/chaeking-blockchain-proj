@@ -4,14 +4,21 @@ import { useRouter, useParams } from "next/navigation";
 import { Heart, MapPin, Calendar, Target, Users, ArrowLeft, Clock } from "lucide-react";
 import { apiClient } from "../../utils/api";
 import { toast } from "react-toastify";
+import { ethers } from "ethers";
+import { useMetamask } from "../../hooks/useMetamask";
+import { getNGOFundContract, toBytes32Id } from "../../utils/ngoFund";
+
 
 export default function CaseDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
   const [caseData, setCaseData] = useState<any>(null);
+   const [recentDonations, setRecentDonations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+   const [isDonating, setIsDonating] = useState(false);
   const [donationAmount, setDonationAmount] = useState("");
+   const { account, provider, connectWallet } = useMetamask();
 
   useEffect(() => {
     if (slug) {
@@ -23,7 +30,8 @@ export default function CaseDetailsPage() {
     try {
       const result = await apiClient.cases.getById(slug);
       if (result.success) {
-        setCaseData(result.data);
+       setCaseData(result.data?.case || null);
+        setRecentDonations(result.data?.recentDonations || []);
       } else {
         toast.error("Case not found");
         router.push("/cases");
@@ -36,12 +44,68 @@ export default function CaseDetailsPage() {
     }
   };
 
-  const handleDonate = () => {
+ const handleDonate = async () => {
     if (!donationAmount || parseFloat(donationAmount) <= 0) {
       toast.error("Please enter a valid donation amount");
       return;
     }
-    toast.info("Donation feature will be integrated with blockchain");
+      if (!caseData?.associatedNGO?.walletAddress) {
+      toast.error("Selected case NGO wallet is missing");
+      return;
+    }
+
+    const accessToken = sessionStorage.getItem("accessToken");
+    const userData = localStorage.getItem("user_data");
+    if (!accessToken || !userData || JSON.parse(userData).role !== "user") {
+      toast.error("Please login as user to donate");
+      router.push("/login");
+      return;
+    }
+
+    if (!account || !provider) {
+      const connected = await connectWallet();
+      if (!connected) return;
+    }
+
+    try {
+      setIsDonating(true);
+ const activeProvider = provider || new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await activeProvider.getSigner();
+      const contract = getNGOFundContract(signer);
+      const valueWei = ethers.parseEther(donationAmount);
+
+      const tx = await contract.donateToCase(
+        toBytes32Id(caseData._id),
+        caseData.associatedNGO.walletAddress,
+        { value: valueWei }
+      );
+
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      const receipt = await tx.wait();
+      const gasPrice = receipt?.gasPrice ?? tx.gasPrice ?? 0n;
+      const gasUsed = receipt?.gasUsed ?? 0n;
+      const feeWei = gasPrice * gasUsed;
+
+      const saveResult = await apiClient.cases.donate(caseData._id, {
+        amount: parseFloat(donationAmount),
+        txHash: tx.hash,
+        gasPrice: Number(gasPrice),
+        transactionFee: Number(feeWei),
+      });
+
+      if (!saveResult.success) {
+        toast.error(saveResult.message || "Donation confirmed on-chain but save failed");
+      } else {
+        toast.success("Donation successful and recorded");
+      }
+
+      setDonationAmount("");
+      await fetchCaseDetails();
+    } catch (err: any) {
+      toast.error(err?.reason || err?.message || "Donation failed");
+    } finally {
+      setIsDonating(false);
+    }
   };
 
   if (loading) {
@@ -192,9 +256,9 @@ export default function CaseDetailsPage() {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-2xl font-bold text-purple-600">
-                      ₹{caseData.currentAmount.toLocaleString()}
+                        {Number(caseData.currentAmount || 0).toLocaleString()} MATIC
                     </p>
-                    <p className="text-sm text-gray-600">raised of ₹{caseData.targetAmount.toLocaleString()}</p>
+                       <p className="text-sm text-gray-600">raised of {Number(caseData.targetAmount || 0).toLocaleString()} MATIC</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold text-gray-800">{caseData.totalDonors || 0}</p>
@@ -236,9 +300,11 @@ export default function CaseDetailsPage() {
 
                   <button
                     onClick={handleDonate}
+                       disabled={isDonating}
                     className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
+                     data-testid="case-detail-donate-button"
                   >
-                    Donate with Crypto
+                     {isDonating ? "Processing..." : "Donate with Crypto"}
                   </button>
                 </>
               )}
@@ -250,6 +316,8 @@ export default function CaseDetailsPage() {
                 </div>
               )}
             </div>
+
+
 
             {/* Associated NGO */}
             <div className="bg-white rounded-xl shadow-lg p-6">
@@ -266,6 +334,31 @@ export default function CaseDetailsPage() {
                 <p className="font-bold text-gray-800">{caseData.associatedNGO?.ngoName || 'NGO Name'}</p>
                 <p className="text-sm text-gray-600 mt-1">View NGO Profile →</p>
               </button>
+            </div>
+
+             <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold mb-4 text-gray-800">Recent On-Platform Donations</h3>
+              <div className="space-y-3" data-testid="case-recent-donations-list">
+                {recentDonations.length === 0 && (
+                  <p className="text-sm text-gray-500">No donations yet for this case.</p>
+                )}
+                {recentDonations.map((donation) => (
+                  <div key={donation._id} className="border border-gray-100 rounded-lg p-3">
+                    <p className="text-sm font-medium text-gray-800" data-testid={`case-donation-wallet-${donation._id}`}>
+                      {donation.sender?.walletAddress || "Anonymous"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {donation.amount} MATIC
+                    </p>
+                    <p className="text-xs text-blue-600 break-all" data-testid={`case-donation-txhash-${donation._id}`}>
+                      {donation.txHash}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(donation.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ const transactionSchema = new Schema(
   {
     transactionType: {
       type: String,
-        enum: ["transfer", "ngo-registration", "withdrawal", "case-donation", "product-donation"],
+          enum: ["transfer", "ngo-registration", "withdrawal", "ngo-donation", "case-donation", "product-donation"],
       required: true,
     },
     sender: {

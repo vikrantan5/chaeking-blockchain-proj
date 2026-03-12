@@ -68,8 +68,8 @@ export const createProduct = asyncHandler(async (req, res) => {
 
 // Get all products (with filters)
 export const getAllProducts = asyncHandler(async (req, res) => {
-    const { category, ngoId, available, search } = req.query;
-
+     const { category, ngoId, available, isAvailable, search } = req.query;
+     const availability = available ?? isAvailable;
     let filter = {};
     
     if (category) {
@@ -80,8 +80,8 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         filter.associatedNGO = ngoId;
     }
 
-    if (available !== undefined) {
-        filter.isAvailable = available === 'true';
+     if (availability !== undefined) {
+        filter.isAvailable = availability === 'true';
     }
 
     if (search) {
@@ -159,7 +159,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
 // Record product donation
 export const recordProductDonation = asyncHandler(async (req, res) => {
     const { productId } = req.params;
-    const { ngoId, txHash, gasPrice, transactionFee } = req.body;
+     const { ngoId, txHash, gasPrice, transactionFee, quantity = 1 } = req.body;
+    const parsedQuantity = Number(quantity);
 
     if (!ngoId || !txHash) {
         throw new ApiError(400, "NGO ID and transaction hash are required");
@@ -174,7 +175,10 @@ export const recordProductDonation = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Product is not available");
     }
 
-    if (product.stockQuantity <= 0) {
+      if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0) {
+        throw new ApiError(400, "Quantity should be a positive integer");
+    }
+     if (product.stockQuantity < parsedQuantity) {
         throw new ApiError(400, "Product is out of stock");
     }
 
@@ -194,21 +198,24 @@ export const recordProductDonation = asyncHandler(async (req, res) => {
     }
 
     // Update product stats
-    product.stockQuantity -= 1;
-    product.totalDonated += 1;
+    product.stockQuantity -= parsedQuantity;
+    product.totalDonated += parsedQuantity;
+    product.isAvailable = product.stockQuantity > 0;
     await product.save();
 
     // Create transaction record
+    const totalAmount = product.priceInCrypto * parsedQuantity;
     const transaction = await Transaction.create({
+        
         transactionType: 'product-donation',
         sender: req.user._id,
         receiver: ngo._id,
-        amount: product.priceInCrypto,
+       amount: totalAmount,
         txHash,
         status: 'confirmed',
         gasPrice: gasPrice || 0,
         transactionFee: transactionFee || 0,
-        purpose: `Product donation: ${product.productName}`,
+        purpose: `Product donation: ${product.productName} x${parsedQuantity}`,
         product: productId,
         ngo: ngoId,
         cryptoType: 'matic'
@@ -220,7 +227,7 @@ export const recordProductDonation = asyncHandler(async (req, res) => {
     // Update NGO stats
     await NGO.findByIdAndUpdate(
         ngoId,
-        { $inc: { totalDonationsReceived: product.priceInCrypto } }
+        { $inc: { totalDonationsReceived: totalAmount } }
     );
 
     return res.status(201).json(

@@ -52,34 +52,33 @@ export const useMetamask = () => {
       }
 
       const { chainId } = await ethProvider.getNetwork();
-      if (chainId !== BigInt(80002)) {
+      if (chainId !== BigInt(31337)) {
         try {
           await window.ethereum.request({
             method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x13882" }],
+            params: [{ chainId: "0x7A69" }],
           });
-          toast.info("Switched to Polygon Amoy network.");
+  toast.info("Switched to Hardhat Localhost network.");
         } catch (switchError: any) {
           if (switchError.code === 4902) {
             await window.ethereum.request({
               method: "wallet_addEthereumChain",
               params: [
                 {
-                  chainId: "0x13882",
-                  chainName: "Polygon Amoy Testnet",
+                  chainId: "0x7A69",
+                  chainName: "Hardhat Localhost",
                   nativeCurrency: {
-                    name: "MATIC",
-                    symbol: "MATIC",
+                    name: "ETH",
+                    symbol: "ETH",
                     decimals: 18,
                   },
-                  rpcUrls: ["https://rpc-amoy.polygon.technology"],
-                  blockExplorerUrls: ["https://amoy.polygonscan.com"],
+                    rpcUrls: [process.env.NEXT_PUBLIC_HARDHAT_RPC_URL || "http://127.0.0.1:8545"],
                 },
               ],
             });
-            toast.success("Successfully added Polygon Amoy network!");
+             toast.success("Successfully added Hardhat Localhost network!");
           } else {
-            const msg = "Please switch to the Polygon Amoy network.";
+             const msg = "Please switch to Hardhat Localhost (Chain ID: 31337).";
             setError(msg);
             toast.error(msg);
           }

@@ -83,7 +83,7 @@ const ngoDetailsSchema = new Schema({
 
     walletAddress: {
         type: String,
-        required: [true, "Wallet address is required"],
+        default: null,
         lowercase: true,
         trim: true,
     },

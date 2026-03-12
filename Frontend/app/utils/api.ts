@@ -152,7 +152,20 @@ const token = sessionStorage.getItem('accessToken');
     },
     create: async (data: any) => {
       const token = sessionStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE_URL}/cases`, {
+            const response = await fetch(`${API_BASE_URL}/cases/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    donate: async (caseId: string, data: any) => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/cases/${caseId}/donate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,9 +189,45 @@ const token = sessionStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE_URL}/products/${id}`);
       return response.json();
     },
-    create: async (data: any) => {
+     create: async (data: FormData) => {
       const token = sessionStorage.getItem('accessToken');
-      const response = await fetch(`${API_BASE_URL}/products`, {
+      const response = await fetch(`${API_BASE_URL}/products/create`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: data,
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    updateStock: async (productId: string, quantity: number) => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/products/${productId}/stock`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity }),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    delete: async (productId: string) => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/products/${productId}/delete`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    donate: async (productId: string, data: any) => {
+      const token = sessionStorage.getItem('accessToken');
+     const response = await fetch(`${API_BASE_URL}/products/${productId}/donate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,6 +236,27 @@ const token = sessionStorage.getItem('accessToken');
         body: JSON.stringify(data),
         credentials: 'include',
       });
+      return response.json();
+    },
+  },
+
+
+  ngo: {
+    donate: async (ngoId: string, data: any) => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/ngos/${ngoId}/donate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    getDonations: async (ngoId: string, limit = 20) => {
+      const response = await fetch(`${API_BASE_URL}/ngos/${ngoId}/donations?limit=${limit}`);
       return response.json();
     },
   },

@@ -114,7 +114,7 @@ const validateName = (name: string) =>
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length <= 1) {
+ if (value.length <= 1 && /^\d?$/.test(value)) {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
@@ -128,7 +128,7 @@ const validateName = (name: string) =>
   const handleOtpPaste = (e: ClipboardEvent) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text").trim();
-    if (pastedData.length === 6 && /^d+$/.test(pastedData)) {
+  if (pastedData.length === 6 && /^\d+$/.test(pastedData)) {
       const newOtp = pastedData.split("");
       setOtp(newOtp);
       const lastInput = document.getElementById(`otp-${newOtp.length - 1}`);
@@ -221,7 +221,7 @@ const validateName = (name: string) =>
       formData.append('registrationNumber', registrationNumber);
       formData.append('description', description);
       formData.append('mission', mission);
-      formData.append('walletAddress', ''); // Will be set later after wallet connection
+     
       
       formData.append('address', JSON.stringify({
         street,

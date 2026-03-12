@@ -35,7 +35,7 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
     }
 
     // Validate NGO fields
-    if (!ngoName || !registrationNumber || !address || !description || !mission || !walletAddress) {
+  if (!ngoName || !registrationNumber || !address || !description || !mission) {
         throw new ApiError(400, "All NGO fields are required");
     }
 
@@ -85,9 +85,25 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
     }
 
     // Parse JSON fields
-    const parsedAddress = typeof address === 'string' ? JSON.parse(address) : address;
-    const parsedContactDetails = typeof contactDetails === 'string' ? JSON.parse(contactDetails) : contactDetails;
-    const parsedFocusAreas = focusAreas ? (typeof focusAreas === 'string' ? JSON.parse(focusAreas) : focusAreas) : [];
+    let parsedAddress;
+    let parsedContactDetails;
+    let parsedFocusAreas;
+
+    try {
+        parsedAddress = typeof address === 'string' ? JSON.parse(address) : address;
+        parsedContactDetails = typeof contactDetails === 'string' ? JSON.parse(contactDetails) : contactDetails;
+        parsedFocusAreas = focusAreas ? (typeof focusAreas === 'string' ? JSON.parse(focusAreas) : focusAreas) : [];
+    } catch (error) {
+        throw new ApiError(400, "Invalid NGO data format");
+    }
+
+    if (!parsedAddress?.street || !parsedAddress?.city || !parsedAddress?.state || !parsedAddress?.pincode) {
+        throw new ApiError(400, "Complete NGO address is required");
+    }
+
+    if (!parsedContactDetails?.phone || !parsedContactDetails?.email) {
+        throw new ApiError(400, "NGO contact details are required");
+    }
 
     // Create user with ngoAdmin role and pending status
     const user = await User.create({
@@ -100,7 +116,7 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
         status: "pending",
         ngoName: ngoName,
         ngoLocation: `${parsedAddress.city}, ${parsedAddress.state}`,
-        walletAddress: walletAddress
+         walletAddress: walletAddress || null
     });
 
     if (!user) {
@@ -116,7 +132,7 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
         description,
         mission,
         focusAreas: parsedFocusAreas,
-        walletAddress,
+         walletAddress: walletAddress || null,
         coverImage: coverImageUrl,
         verificationDocuments: verificationDocUrls,
         registeredBy: user._id,
@@ -277,7 +293,7 @@ export const storeWalletAddressForNGOAdmin = asyncHandler(async (req, res) => {
 
     // Also update NGO wallet address
     const ngo = await NGO.findOne({ registeredBy: req.user._id });
-    if (ngo && !ngo.walletAddress) {
+    if (ngo && ngo.walletAddress !== walletAddress) {
         ngo.walletAddress = walletAddress;
         await ngo.save();
     }

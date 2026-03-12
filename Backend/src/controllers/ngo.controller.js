@@ -6,8 +6,88 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { emailForOtpVerification } from "../utils/emailTemplateForOTP.js";
+import { Transaction } from "../models/transaction.model.js";
 import mongoose from "mongoose";
 
+
+
+
+
+// / Donate to NGO (authenticated user)
+export const donateToNGO = asyncHandler(async (req, res) => {
+    const { ngoId } = req.params;
+    const { amount, txHash, gasPrice = 0, transactionFee = 0 } = req.body;
+
+    if (!amount || !txHash) {
+        throw new ApiError(400, "Amount and transaction hash are required");
+    }
+
+    const parsedAmount = Number(amount);
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new ApiError(400, "Donation amount must be a positive number");
+    }
+
+    const ngo = await NGO.findById(ngoId);
+    if (!ngo) {
+        throw new ApiError(404, "NGO not found");
+    }
+
+    if (ngo.approvalStatus !== "approved") {
+        throw new ApiError(400, "This NGO is not approved for donations yet");
+    }
+
+    const duplicateTx = await Transaction.findOne({ txHash });
+    if (duplicateTx) {
+        throw new ApiError(400, "Transaction already recorded");
+    }
+
+    const transaction = await Transaction.create({
+        transactionType: "ngo-donation",
+        sender: req.user._id,
+        receiver: ngo.registeredBy,
+        amount: parsedAmount,
+        txHash,
+        status: "confirmed",
+        gasPrice: Number(gasPrice) || 0,
+        transactionFee: Number(transactionFee) || 0,
+        purpose: `Donation to NGO: ${ngo.ngoName}`,
+        ngo: ngo._id,
+        cryptoType: "matic"
+    });
+
+    await NGO.findByIdAndUpdate(ngo._id, {
+        $inc: { totalDonationsReceived: parsedAmount }
+    });
+
+    return res.status(201).json(
+        new ApiResponse(201, transaction, "NGO donation recorded successfully")
+    );
+});
+
+// Donation transparency list for an NGO
+export const getNGODonations = asyncHandler(async (req, res) => {
+    const { ngoId } = req.params;
+    const { limit = 20 } = req.query;
+
+    const ngo = await NGO.findById(ngoId).select("ngoName");
+    if (!ngo) {
+        throw new ApiError(404, "NGO not found");
+    }
+
+    const donationList = await Transaction.find({
+        ngo: ngoId,
+        transactionType: { $in: ["ngo-donation", "case-donation", "product-donation"] },
+        status: "confirmed"
+    })
+        .sort({ createdAt: -1 })
+        .limit(Number(limit) || 20)
+        .populate("sender", "name email walletAddress")
+        .select("transactionType sender amount txHash createdAt purpose cryptoType fundraisingCase product");
+
+    return res.status(200).json(
+        new ApiResponse(200, { ngo, donations: donationList }, "NGO donations fetched successfully")
+    );
+});
 // Helper function to safely parse JSON
 const safeJSONParse = (data, fieldName) => {
     if (!data) return null;

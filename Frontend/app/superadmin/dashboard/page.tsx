@@ -101,6 +101,15 @@ export default function SuperAdminDashboard() {
              <h1 className="text-4xl font-bold text-gray-800" data-testid="superadmin-dashboard-title">Super Admin Dashboard</h1>
           </div>
           <p className="text-gray-600">Platform management and NGO oversight</p>
+           <div className="mt-4 flex gap-3">
+            <button
+              onClick={() => router.push('/superadmin/products')}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              data-testid="superadmin-go-products-button"
+            >
+              Manage Products
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}

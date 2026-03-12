@@ -6,6 +6,8 @@ import {
     registerNGO,
     getAllNGOs,
     getNGOById,
+       donateToNGO,
+    getNGODonations,
     approveNGO,
     rejectNGO,
     updateNGO,
@@ -21,6 +23,7 @@ const router = Router();
 // Public routes
 router.route("/").get(optionalJWT, getAllNGOs);
 router.route("/:id").get(optionalJWT, getNGOById);
+router.route("/:ngoId/donations").get(getNGODonations);
 
 // New NGO Registration with OTP
 router.route("/initiate-registration").post(
@@ -49,6 +52,13 @@ router.route("/dashboard").get(
     verifyJWT,
       authorizeRoles("ngoAdmin"),
     getNGODashboard
+);
+
+
+router.route("/:ngoId/donate").post(
+    verifyJWT,
+    authorizeRoles("user"),
+    donateToNGO
 );
 
 router.route("/:ngoId/update").patch(
