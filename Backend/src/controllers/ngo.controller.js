@@ -4,6 +4,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { NGO } from "../models/ngo.model.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import { emailForOtpVerification } from "../utils/emailTemplateForOTP.js";
 import mongoose from "mongoose";
 
 // Helper function to safely parse JSON
@@ -34,8 +36,8 @@ const uploadMultipleFiles = async (files, folder = 'ngos') => {
     return results.filter(url => url !== null);
 };
 
-// Register a new NGO (by NGO admin)
-export const registerNGO = asyncHandler(async (req, res) => {
+// Step 1: Initiate NGO Registration and send OTP
+export const initiateNGORegistration = asyncHandler(async (req, res) => {
     const {
         ngoName,
         registrationNumber,
@@ -88,8 +90,17 @@ export const registerNGO = asyncHandler(async (req, res) => {
         }
     }
 
-    // Create NGO
-    const ngo = await NGO.create({
+    // Store NGO data temporarily in user document
+    const user = await User.findById(req.user._id);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store NGO registration data in user document temporarily
+    user.pendingNGOData = {
         ngoName,
         registrationNumber,
         address: parsedAddress,
@@ -99,23 +110,126 @@ export const registerNGO = asyncHandler(async (req, res) => {
         focusAreas: parsedFocusAreas,
         walletAddress,
         coverImage: coverImageUrl,
-        verificationDocuments: verificationDocUrls,
-        registeredBy: req.user._id,
-        approvalStatus: 'pending',
-        registeredAt: new Date()
+        verificationDocuments: verificationDocUrls
+    };
+    user.resetOtp = otp;
+    user.resetOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+    user.lastOtpSentAt = Date.now();
+    
+    await user.save({ validateBeforeSave: false });
+
+    // Send OTP email
+    const otpEmail = emailForOtpVerification(user.email, otp, "ngoRegistration");
+    try {
+        await sendEmail(user.email, "NGO Registration - OTP Verification", otpEmail);
+    } catch (error) {
+        throw new ApiError(500, "Failed to send OTP email. Please try again.");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, { email: user.email }, "OTP sent to your email. Please verify to complete NGO registration.")
+    );
+});
+
+// Step 2: Verify OTP and complete NGO registration
+export const verifyNGORegistrationOTP = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+        throw new ApiError(400, "Email and OTP are required");
+    }
+
+    // Find user with OTP
+    const user = await User.findOne({ email }).select("+resetOtp +resetOtpExpires +pendingNGOData");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (!user.pendingNGOData) {
+        throw new ApiError(400, "No pending NGO registration found. Please initiate registration first.");
+    }
+
+    // Verify OTP
+    if (user.resetOtp !== otp) {
+        throw new ApiError(400, "Invalid OTP");
+    }
+
+    if (user.resetOtpExpires < Date.now()) {
+        throw new ApiError(400, "OTP has expired. Please request a new one.");
+    }
+
+    // Create NGO with stored data
+    const ngo = await NGO.create({
+        ...user.pendingNGOData,
+        registeredBy: user._id,
+        approvalStatus: 'pending'
     });
 
     // Update user role to ngoAdmin
-    await User.findByIdAndUpdate(req.user._id, {
+    await User.findByIdAndUpdate(user._id, {
         role: 'ngoAdmin',
         ngoId: ngo._id,
-        ngoName: ngoName,
-        ngoLocation: parsedAddress ? `${parsedAddress.city || ''}, ${parsedAddress.state || ''}`.replace(/^, |, $/g, '') : ''
+        ngoName: user.pendingNGOData.ngoName,
+        ngoLocation: user.pendingNGOData.address ? 
+            `${user.pendingNGOData.address.city || ''}, ${user.pendingNGOData.address.state || ''}`.replace(/^, |, $/g, '') : '',
+        $unset: { 
+            pendingNGOData: 1,
+            resetOtp: 1,
+            resetOtpExpires: 1,
+            lastOtpSentAt: 1
+        }
     });
 
     return res.status(201).json(
-        new ApiResponse(201, ngo, "NGO registered successfully. Waiting for admin approval.")
+        new ApiResponse(201, ngo, "NGO registered successfully! Waiting for admin approval.")
     );
+});
+
+// Resend OTP for NGO registration
+export const resendNGORegistrationOTP = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({ email }).select("+resetOtp +resetOtpExpires +pendingNGOData +lastOtpSentAt");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (!user.pendingNGOData) {
+        throw new ApiError(400, "No pending NGO registration found");
+    }
+
+    // Check if last OTP was sent less than 1 minute ago
+    if (user.lastOtpSentAt && (Date.now() - user.lastOtpSentAt < 60000)) {
+        throw new ApiError(429, "Please wait 1 minute before requesting a new OTP");
+    }
+
+    // Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetOtp = otp;
+    user.resetOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.lastOtpSentAt = Date.now();
+    await user.save({ validateBeforeSave: false });
+
+    // Send OTP email
+    const otpEmail = emailForOtpVerification(user.email, otp, "ngoRegistration");
+    try {
+        await sendEmail(user.email, "NGO Registration - OTP Verification (Resend)", otpEmail);
+    } catch (error) {
+        throw new ApiError(500, "Failed to send OTP email");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "OTP resent successfully. Please check your email.")
+    );
+});
+
+// Legacy function (kept for backward compatibility)
+export const registerNGO = asyncHandler(async (req, res) => {
+    throw new ApiError(400, "Please use the new registration flow with OTP verification. Call /initiate-registration first.");
 });
 
 // Get all NGOs (with filters and pagination)

@@ -1,5 +1,8 @@
 import { Router } from "express";
 import {
+      initiateNGORegistration,
+    verifyNGORegistrationOTP,
+    resendNGORegistrationOTP,
     registerNGO,
     getAllNGOs,
     getNGOById,
@@ -19,7 +22,20 @@ const router = Router();
 router.route("/").get(optionalJWT, getAllNGOs);
 router.route("/:id").get(optionalJWT, getNGOById);
 
-// Protected routes
+// New NGO Registration with OTP
+router.route("/initiate-registration").post(
+    verifyJWT,
+    upload.fields([
+        { name: "coverImage", maxCount: 1 },
+        { name: "verificationDocuments", maxCount: 10 }
+    ]),
+    initiateNGORegistration
+);
+
+router.route("/verify-registration-otp").post(verifyJWT, verifyNGORegistrationOTP);
+router.route("/resend-registration-otp").post(verifyJWT, resendNGORegistrationOTP);
+
+// Legacy registration route (kept for backward compatibility)
 router.route("/register").post(
     verifyJWT,
     upload.fields([

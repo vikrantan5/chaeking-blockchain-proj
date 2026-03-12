@@ -50,6 +50,14 @@ const userSchema = new Schema({
         type: Date,
         select: false,
     },
+    pendingNGOData: {
+        type: Object,
+        select: false,
+    },
+    ngoId: {
+        type: Schema.Types.ObjectId,
+        ref: "NGO",
+    },
       ngoName: {
         type: String,
     },
