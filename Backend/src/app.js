@@ -17,13 +17,10 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 
-// route import
+/// route import
 import userRouter from "./routes/user.route.js"
 import superAdminRouter from "./routes/superAdmin.route.js"
 import superAdminDashboardRouter from "./routes/superAdminDashboard.route.js"
-import templeAdminRouter from "./routes/templeAdmin.route.js"
-import templeDetailsRouter from "./routes/templeDetails.route.js"
-import templeReviewRouter from "./routes/reviews.route.js"
 import templeCarouselRouter from "./routes/carousel.route.js"
 import transactionRouter from "./routes/transaction.route.js";
 import ngoRouter from "./routes/ngo.route.js";
@@ -36,9 +33,6 @@ import { errorHandler } from "./utils/errorHandler.js"
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/superAdmin", superAdminRouter);
 app.use("/api/v1/superAdminDashboard", superAdminDashboardRouter);
-app.use("/api/v1/templeAdmin", templeAdminRouter);
-app.use("/api/v1/templeDetails", templeDetailsRouter);
-app.use("/api/v1/reviews", templeReviewRouter);
 app.use("/api/v1/carousel", templeCarouselRouter);
 app.use("/api/v1/transactions", transactionRouter);
 app.use("/api/v1/ngos", ngoRouter);

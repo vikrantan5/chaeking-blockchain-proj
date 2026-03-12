@@ -22,27 +22,27 @@ const countUsers = asyncHandler(async (req, res) => {
     }
 });
 
-const countTempleAdmins = asyncHandler(async (req, res) => {
+const countNGOAdmins = asyncHandler(async (req, res) => {
     try {
-        const verifiedCount = await User.countDocuments({ role: "templeAdmin", status: "active" });
-        const pendingCount = await User.countDocuments({ role: "templeAdmin", status: "pending" });
+        const verifiedCount = await User.countDocuments({ role: "ngoAdmin", status: "active" });
+        const pendingCount = await User.countDocuments({ role: "ngoAdmin", status: "pending" });
 
         // Emit WebSocket event for dashboard updates
         io.emit("dashboard-updates", {
-            verifiedTempleCount: verifiedCount,
-            pendingTempleCount: pendingCount,
+            verifiedNGOCount: verifiedCount,
+            pendingNGOCount: pendingCount,
         });
 
         return res.status(200).json(
-            new ApiResponse(200, { verifiedCount, pendingCount }, "Temple admin counts fetched successfully.")
+            new ApiResponse(200, { verifiedCount, pendingCount }, "NGO admin counts fetched successfully.")
         );
     } catch (error) {
-        console.error("Error fetching temple admin counts:", error);
-        throw new ApiError(500, "Failed to fetch temple admin counts.");
+        console.error("Error fetching NGO admin counts:", error);
+        throw new ApiError(500, "Failed to fetch NGO admin counts.");
     }
 });
 
 export { 
     countUsers,
-    countTempleAdmins 
+    countNGOAdmins 
 };

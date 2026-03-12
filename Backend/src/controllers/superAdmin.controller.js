@@ -267,72 +267,12 @@ const getCurrentSuperAdmin = asyncHandler(async (req, res) => {
         )
 })
 
-const confirmTempleAdminRegistration = asyncHandler(async (req, res) => {
-    const { templeAdminId } = req.body;
 
-    if (!templeAdminId) {
-        throw new ApiError(400, "Temple Admin ID is required");
-    }
 
-    const templeAdmin = await User.findById(templeAdminId);
-    if (!templeAdmin || templeAdmin.role !== "templeAdmin") {
-        throw new ApiError(404, "Temple Admin not found");
-    }
-
-    if (templeAdmin.status !== "pending") {
-        throw new ApiError(400, "Temple Admin is already active");
-    }
-
-    // Check if wallet address is stored
-    if (!templeAdmin.walletAddress) {
-        throw new ApiError(400, "Temple Admin has not connected their wallet address");
-    }
-
-    // Update status to active
-    templeAdmin.status = "active";
-    await templeAdmin.save({ validateBeforeSave: false });
-
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            {
-                _id: templeAdmin._id,
-                name: templeAdmin.name,
-                email: templeAdmin.email,
-                phone: templeAdmin.phone,
-                walletAddress: templeAdmin.walletAddress,
-                templeName: templeAdmin.templeName,
-                templeLocation: templeAdmin.templeLocation,
-                status: templeAdmin.status
-            },
-            "Temple Admin registration confirmed and deployed on blockchain"
-        )
-    );
-});
-
-const rejectTempleAdminRegistration = asyncHandler(async (req, res) => {
-    const { templeAdminId } = req.body;
-
-    if (!templeAdminId) {
-        throw new ApiError(400, "Temple Admin ID is required");
-    }
-
-    const templeAdmin = await User.findById(templeAdminId);
-    if (!templeAdmin || templeAdmin.role !== "templeAdmin") {
-        throw new ApiError(404, "Temple Admin not found");
-    }
-
-    // Remove the temple admin from the database
-    await User.findByIdAndDelete(templeAdminId);
-
-    return res.status(200).json(
-        new ApiResponse(200, {}, "Temple Admin registration request rejected and removed.")
-    );
-});
 
 const getPendingConfirmations = asyncHandler(async (req, res) => {
     const pendingAdmins = await User.find({ 
-        role: "templeAdmin", 
+        role: "ngoAdmin", 
         status: "pending", 
         walletAddress: { $ne: null } 
     }).select("-password -refreshToken");
@@ -346,8 +286,5 @@ export {
     refreshAccessToken,
     changePassword,
     getCurrentSuperAdmin,
-    confirmTempleAdminRegistration,
-    rejectTempleAdminRegistration,
     getPendingConfirmations
 };
-
