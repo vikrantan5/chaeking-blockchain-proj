@@ -36,23 +36,26 @@ export default function NGOsPage() {
     filterNGOs();
   }, [searchQuery, selectedCity, ngos]);
 
-  const fetchNGOs = async () => {
-    try {
-      setIsLoading(true);
-      const result = await apiClient.ngos.getAll({ status: 'approved' });
-      if (result.success) {
-        setNgos(result.data);
-        setFilteredNgos(result.data);
-      } else {
-        toast.error("Failed to fetch NGOs");
-      }
-    } catch (error) {
-      console.error("Error fetching NGOs:", error);
-      toast.error("An error occurred while fetching NGOs");
-    } finally {
-      setIsLoading(false);
+const fetchNGOs = async () => {
+  try {
+    setIsLoading(true);
+
+    const result = await apiClient.ngos.getAll({ status: "approved" });
+
+    if (result.success) {
+      const ngoList = result.data?.ngos || result.data || [];
+      setNgos(Array.isArray(ngoList) ? ngoList : []);
+      setFilteredNgos(Array.isArray(ngoList) ? ngoList : []);
+    } else {
+      toast.error("Failed to fetch NGOs");
     }
-  };
+  } catch (error) {
+    console.error("Error fetching NGOs:", error);
+    toast.error("An error occurred while fetching NGOs");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const filterNGOs = () => {
     let filtered = [...ngos];
@@ -73,7 +76,9 @@ export default function NGOsPage() {
     setFilteredNgos(filtered);
   };
 
-  const cities = Array.from(new Set(ngos.map(ngo => ngo.address.city)));
+ const cities = Array.from(
+  new Set((Array.isArray(ngos) ? ngos : []).map(ngo => ngo.address?.city))
+);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">

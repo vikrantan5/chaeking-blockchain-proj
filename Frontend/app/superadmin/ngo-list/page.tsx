@@ -19,21 +19,22 @@ export default function NGOListPage() {
     loadNGOs();
   }, [router]);
 
-  const loadNGOs = async () => {
-    setIsLoading(true);
-    try {
-      const result = await apiClient.ngos.getAll({});
-      if (result.success) {
-        setNgos(result.data || []);
-      } else {
-        toast.error(result.message || "Unable to load NGOs");
-      }
-    } catch {
-      toast.error("Unable to load NGO list");
-    } finally {
-      setIsLoading(false);
+const loadNGOs = async () => {
+  setIsLoading(true);
+  try {
+    const result = await apiClient.ngos.getAll({});
+
+    if (result.success) {
+      setNgos(result.data?.ngos || []);
+    } else {
+      toast.error(result.message || "Unable to load NGOs");
     }
-  };
+  } catch {
+    toast.error("Unable to load NGO list");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="space-y-6" data-testid="ngo-list-page">
