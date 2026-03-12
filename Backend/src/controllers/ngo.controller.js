@@ -442,7 +442,10 @@ export const approveNGO = asyncHandler(async (req, res) => {
         {
         role: 'ngoAdmin',
            isVerified: true,
-        status: 'active' // Set status to active so NGO admin can login
+        status: 'active', // Set status to active so NGO admin can login
+        ngoId: ngo._id, // Link NGO to user
+        ngoName: ngo.ngoName,
+        ngoLocation: `${ngo.address.city}, ${ngo.address.state}`
      },
         { new: true } // Return updated document
     );
@@ -638,7 +641,13 @@ export const deleteNGO = asyncHandler(async (req, res) => {
 
 // Get NGO dashboard stats
 export const getNGODashboard = asyncHandler(async (req, res) => {
-    const ngo = await NGO.findOne({ registeredBy: req.user._id });
+    // Try to find NGO by registeredBy first, then by ngoId from user
+    let ngo = await NGO.findOne({ registeredBy: req.user._id });
+    
+    // If not found by registeredBy, try using user's ngoId
+    if (!ngo && req.user.ngoId) {
+        ngo = await NGO.findById(req.user.ngoId);
+    }
     
     if (!ngo) {
         throw new ApiError(404, "NGO not found for this user");

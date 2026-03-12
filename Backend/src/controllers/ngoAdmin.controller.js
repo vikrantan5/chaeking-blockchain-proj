@@ -145,6 +145,12 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Something went wrong while registering the NGO");
     }
 
+    // Link NGO to User
+    user.ngoId = ngo._id;
+    user.ngoName = ngo.ngoName;
+    user.ngoLocation = `${parsedAddress.city}, ${parsedAddress.state}`;
+
+
    // Generate 6-digit numeric OTP for email verification
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetOtp = otp;
@@ -203,7 +209,13 @@ export const loginNGOAdmin = asyncHandler(async (req, res) => {
     }
 
       // Get NGO details to check approval status
-    const ngo = await NGO.findOne({ registeredBy: user._id });
+      // Try to find NGO by registeredBy first, then by ngoId from user
+    let ngo = await NGO.findOne({ registeredBy: user._id });
+    
+    // If not found by registeredBy, try using user's ngoId
+    if (!ngo && user.ngoId) {
+        ngo = await NGO.findById(user.ngoId);
+    }
     if (!ngo) {
         throw new ApiError(404, "NGO details not found. Please contact support.");
     }
