@@ -1,241 +1,334 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Heart, MapPin, Mail, Phone, Globe, Calendar, CheckCircle, ArrowLeft } from "lucide-react";
-import { apiClient } from "../../utils/api";
-import { toast } from "react-toastify";
 
-export default function NGODetailsPage() {
-  const router = useRouter();
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  Building2,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Heart,
+  ArrowLeft,
+  Calendar,
+  TrendingUp,
+  Shield,
+  CheckCircle,
+} from "lucide-react";
+import { toast } from "react-toastify";
+import { apiClient } from "../../utils/api";
+
+interface NGO {
+  _id: string;
+  ngoName: string;
+  slug: string;
+  description: string;
+  mission: string;
+  coverImage: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    pincode: string;
+  };
+  contactDetails: {
+    phone: string;
+    email: string;
+    website?: string;
+  };
+  focusAreas: string[];
+  photoGallery: string[];
+  walletAddress: string;
+  approvalStatus: string;
+  approvalDate: string;
+  totalDonationsReceived: number;
+  registeredBy: {
+    name: string;
+    email: string;
+  };
+}
+
+export default function NGODetailPage() {
   const params = useParams();
-  const slug = params.slug as string;
-  const [ngo, setNgo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [ngo, setNgo] = useState<NGO | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [donationAmount, setDonationAmount] = useState("");
+  const [isDonating, setIsDonating] = useState(false);
 
   useEffect(() => {
-    if (slug) {
+    if (params.slug) {
       fetchNGODetails();
     }
-  }, [slug]);
+  }, [params.slug]);
 
   const fetchNGODetails = async () => {
     try {
-      const result = await apiClient.ngos.getById(slug);
+      setIsLoading(true);
+      const result = await apiClient.ngos.getById(params.slug as string);
       if (result.success) {
         setNgo(result.data);
       } else {
         toast.error("NGO not found");
         router.push("/ngos");
       }
-    } catch (err) {
-      console.error("Error fetching NGO:", err);
-      toast.error("Error loading NGO details");
+    } catch (error) {
+      console.error("Error fetching NGO details:", error);
+      toast.error("An error occurred while fetching NGO details");
+      router.push("/ngos");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleDonate = () => {
+  const handleDonate = async () => {
     if (!donationAmount || parseFloat(donationAmount) <= 0) {
       toast.error("Please enter a valid donation amount");
       return;
     }
-    toast.info("Donation feature will be integrated with blockchain");
+
+    setIsDonating(true);
+    try {
+      // Here you would implement blockchain donation logic
+      toast.info("Donation feature coming soon! Blockchain integration pending.");
+      setDonationAmount("");
+    } catch (error) {
+      console.error("Donation error:", error);
+      toast.error("Donation failed. Please try again.");
+    } finally {
+      setIsDonating(false);
+    }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!ngo) {
-    return <div className="min-h-screen flex items-center justify-center">NGO not found</div>;
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
-      {/* Back Button */}
-      <div className="container mx-auto px-6 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* Hero Section with Cover Image */}
+      <div className="relative h-96 bg-gradient-to-r from-blue-600 to-indigo-700">
+        {ngo.coverImage ? (
+          <img
+            src={ngo.coverImage}
+            alt={ngo.ngoName}
+            className="w-full h-full object-cover opacity-40"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Building2 className="w-32 h-32 text-white opacity-30" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+        {/* Back Button */}
         <button
           onClick={() => router.push("/ngos")}
-          className="flex items-center text-gray-600 hover:text-green-600 transition-colors"
+          className="absolute top-8 left-8 flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Back to NGOs
         </button>
-      </div>
 
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-12">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center gap-3 mb-4">
-            <h1 className="text-4xl md:text-5xl font-bold">{ngo.ngoName}</h1>
-            <CheckCircle className="w-8 h-8 text-green-200" />
-          </div>
-          <p className="text-xl opacity-90 mb-2">{ngo.mission}</p>
-          <div className="flex items-center text-lg opacity-80">
-            <MapPin className="w-5 h-5 mr-2" />
-            {ngo.address?.street}, {ngo.address?.city}, {ngo.address?.state} - {ngo.address?.pincode}
+        {/* NGO Title */}
+        <div className="absolute bottom-8 left-0 right-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center mb-2">
+              <CheckCircle className="w-6 h-6 text-green-400 mr-2" />
+              <span className="text-green-400 font-semibold">Verified NGO</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              {ngo.ngoName}
+            </h1>
+            <div className="flex items-center text-white/90">
+              <MapPin className="w-5 h-5 mr-2" />
+              <span>
+                {ngo.address.city}, {ngo.address.state}, {ngo.address.country}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="md:col-span-2 space-y-8">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - NGO Details */}
+          <div className="lg:col-span-2 space-y-6">
             {/* About Section */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold mb-4 text-gray-800">About Us</h2>
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">About Us</h2>
               <p className="text-gray-600 leading-relaxed mb-6">{ngo.description}</p>
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-xl font-bold mb-3 text-gray-800">Our Mission</h3>
-                <p className="text-gray-600 leading-relaxed">{ngo.mission}</p>
-              </div>
+
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Our Mission</h3>
+              <p className="text-gray-600 leading-relaxed">{ngo.mission}</p>
             </div>
 
             {/* Focus Areas */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold mb-4 text-gray-800">Focus Areas</h2>
-              <div className="flex flex-wrap gap-3">
-                {ngo.focusAreas?.map((area: string, index: number) => (
-                  <span
-                    key={index}
-                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full font-medium"
-                  >
-                    {area}
-                  </span>
-                ))}
+            {ngo.focusAreas && ngo.focusAreas.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Focus Areas</h2>
+                <div className="flex flex-wrap gap-3">
+                  {ngo.focusAreas.map((area, index) => (
+                    <span
+                      key={index}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg"
+                    >
+                      {area}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Contact Information */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Contact Information</h2>
+              <div className="space-y-4">
+                <div className="flex items-center text-gray-600">
+                  <Phone className="w-5 h-5 mr-3 text-blue-500" />
+                  <span>{ngo.contactDetails.phone}</span>
+                </div>
+                <div className="flex items-center text-gray-600">
+                  <Mail className="w-5 h-5 mr-3 text-blue-500" />
+                  <span>{ngo.contactDetails.email}</span>
+                </div>
+                {ngo.contactDetails.website && (
+                  <div className="flex items-center text-gray-600">
+                    <Globe className="w-5 h-5 mr-3 text-blue-500" />
+                    <a
+                      href={ngo.contactDetails.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {ngo.contactDetails.website}
+                    </a>
+                  </div>
+                )}
+                <div className="flex items-start text-gray-600">
+                  <MapPin className="w-5 h-5 mr-3 text-blue-500 mt-1" />
+                  <div>
+                    <p>{ngo.address.street}</p>
+                    <p>
+                      {ngo.address.city}, {ngo.address.state} - {ngo.address.pincode}
+                    </p>
+                    <p>{ngo.address.country}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Photo Gallery */}
             {ngo.photoGallery && ngo.photoGallery.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold mb-4 text-gray-800">Photo Gallery</h2>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Photo Gallery</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {ngo.photoGallery.map((photo: string, index: number) => (
+                  {ngo.photoGallery.map((photo, index) => (
                     <img
                       key={index}
                       src={photo}
                       alt={`Gallery ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform cursor-pointer"
+                      className="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
                     />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Upcoming Events */}
-            {ngo.upcomingEvents && ngo.upcomingEvents.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold mb-4 text-gray-800">Upcoming Events</h2>
-                <div className="space-y-4">
-                  {ngo.upcomingEvents.map((event: any, index: number) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-green-500 transition-colors">
-                      <h3 className="font-bold text-lg text-gray-800 mb-1">{event.title}</h3>
-                      <p className="text-gray-600 text-sm mb-2">{event.description}</p>
-                      <div className="flex items-center text-gray-500 text-sm">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(event.eventDate).toLocaleDateString()}
-                      </div>
-                    </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Donation Card */}
-            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-6">
-              <h3 className="text-xl font-bold mb-4 text-gray-800">Support This NGO</h3>
+          {/* Right Column - Donation Card */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-8">
+              {/* Donation Stats */}
               <div className="mb-6">
-                <p className="text-3xl font-bold text-green-600 mb-1">
-                  ₹{(ngo.totalDonationsReceived || 0).toLocaleString()}
-                </p>
-                <p className="text-gray-600 text-sm">Total Donations Received</p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Donation Amount (MATIC)
-                </label>
-                <input
-                  type="number"
-                  value={donationAmount}
-                  onChange={(e) => setDonationAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                />
-              </div>
-
-              <button
-                onClick={handleDonate}
-                className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
-              >
-                Donate with Crypto
-              </button>
-            </div>
-
-            {/* Contact Information */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold mb-4 text-gray-800">Contact Information</h3>
-              <div className="space-y-3">
-                {ngo.contactDetails?.email && (
-                  <div className="flex items-center text-gray-600">
-                    <Mail className="w-5 h-5 mr-3 text-green-500" />
-                    <a href={`mailto:${ngo.contactDetails.email}`} className="hover:text-green-600">
-                      {ngo.contactDetails.email}
-                    </a>
-                  </div>
-                )}
-                {ngo.contactDetails?.phone && (
-                  <div className="flex items-center text-gray-600">
-                    <Phone className="w-5 h-5 mr-3 text-green-500" />
-                    <a href={`tel:${ngo.contactDetails.phone}`} className="hover:text-green-600">
-                      {ngo.contactDetails.phone}
-                    </a>
-                  </div>
-                )}
-                {ngo.contactDetails?.website && (
-                  <div className="flex items-center text-gray-600">
-                    <Globe className="w-5 h-5 mr-3 text-green-500" />
-                    <a
-                      href={ngo.contactDetails.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-green-600"
-                    >
-                      Visit Website
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Registration Info */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold mb-4 text-gray-800">Verification</h3>
-              <div className="space-y-2">
-                <div className="flex items-center text-green-600 mb-2">
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  <span className="font-medium">Verified NGO</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-600">Total Raised</span>
+                  <TrendingUp className="w-5 h-5 text-green-500" />
                 </div>
-                <p className="text-sm text-gray-600">
-                  Reg. No: <span className="font-medium">{ngo.registrationNumber}</span>
+                <p className="text-3xl font-bold text-gray-800">
+                  {ngo.totalDonationsReceived || 0} ETH
                 </p>
-                {ngo.approvalDate && (
-                  <p className="text-sm text-gray-600">
-                    Approved on: {new Date(ngo.approvalDate).toLocaleDateString()}
-                  </p>
-                )}
               </div>
+
+              {/* Donation Form */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Make a Donation</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Amount (ETH)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      value={donationAmount}
+                      onChange={(e) => setDonationAmount(e.target.value)}
+                      placeholder="0.0"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleDonate}
+                    disabled={isDonating || !donationAmount}
+                    className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {isDonating ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Heart className="w-5 h-5 mr-2" />
+                        Donate Now
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Blockchain Transparency */}
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start">
+                  <Shield className="w-5 h-5 text-blue-600 mt-0.5 mr-2" />
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-1">
+                      Transparent & Secure
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      All donations are recorded on the blockchain and can be verified
+                      anytime.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Wallet Address */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">NGO Wallet Address</p>
+                <p className="text-xs font-mono text-gray-800 break-all">
+                  {ngo.walletAddress}
+                </p>
+              </div>
+
+              {/* Approval Date */}
+              {ngo.approvalDate && (
+                <div className="mt-4 flex items-center text-sm text-gray-600">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span>
+                    Verified on {new Date(ngo.approvalDate).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

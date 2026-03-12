@@ -147,10 +147,10 @@ export default function SuperAdminLogin() {
           </div>
 
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Temple Fund Management
+            NGO Connect Platform
           </h1>
           <p className="text-gray-600 text-sm">
-            Decentralized Donation Platform
+            transparent NGO Donation System
           </p>
         </div>
 
@@ -345,9 +345,9 @@ export default function SuperAdminLogin() {
           </div>
         </div>
 
-        {/* Footer */}
+              {/* Footer */}
         <div className="text-center mt-8 space-y-3">
-          <p className="text-gray-600 font-medium">© 2025 Temple Fund Management System</p>
+          <p className="text-gray-600 font-medium">© 2025 NGO Connect Platform</p>
           <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
             <Shield className="w-4 h-4 text-blue-600" />
             <span>Protected by Advanced Blockchain Security</span>

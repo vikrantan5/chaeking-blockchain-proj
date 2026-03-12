@@ -34,8 +34,16 @@ export const apiClient = {
 
   // NGO Admin APIs
   ngoAdmin: {
+    register: async (formData: FormData) => {
+      const response = await fetch(`${API_BASE_URL}/ngoAdmin/register`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      return response.json();
+    },
     login: async (data: any) => {
-      const response = await fetch(`${API_BASE_URL}/templeAdmin/login-Temple-Admin`, {
+      const response = await fetch(`${API_BASE_URL}/ngoAdmin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -43,8 +51,24 @@ export const apiClient = {
       });
       return response.json();
     },
+    logout: async () => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/ngoAdmin/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    getCurrent: async () => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/ngoAdmin/current`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+      return response.json();
+    },
   },
-
   // Super Admin APIs
   superAdmin: {
     login: async (data: any) => {
