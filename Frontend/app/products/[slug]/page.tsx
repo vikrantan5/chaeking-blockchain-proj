@@ -36,13 +36,94 @@ export default function ProductDetailsPage() {
     }
   };
 
-  const handleDonate = () => {
+const handleDonate = async () => {
     if (quantity <= 0 || quantity > product.stockQuantity) {
       toast.error("Please enter a valid quantity");
       return;
     }
-    toast.info("Product donation feature will be integrated with blockchain");
+    
+    if (!product?.associatedNGO?.walletAddress) {
+      toast.error("Product NGO wallet address not found");
+      return;
+    }
+
+    try {
+      const { ethers } = await import("ethers");
+
+      // Check MetaMask
+      if (typeof window === "undefined" || !(window as any).ethereum) {
+        toast.error("Please install MetaMask to donate");
+        window.open("https://metamask.io/download.html", "_blank");
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+
+      // Get contract
+      const contractAddress = process.env.NEXT_PUBLIC_NGO_FUND_ADDRESS;
+      if (!contractAddress) {
+        toast.error("Contract address not configured");
+        return;
+      }
+
+      const contractABI = [
+        "function donateProduct(bytes32 productId, address ngo) payable"
+      ];
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+      // Convert product ID to bytes32
+      const productIdBytes32 = ethers.keccak256(ethers.toUtf8Bytes(product._id));
+
+      toast.info("Please confirm the transaction in MetaMask...");
+
+      // Send donation
+      const tx = await contract.donateProduct(
+        productIdBytes32,
+        product.associatedNGO.walletAddress,
+        { value: ethers.parseEther(totalPrice.toString()) }
+      );
+
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      const receipt = await tx.wait();
+
+      // Record in backend
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions/blockchain-donation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            donationType: "product-donation",
+            amount: totalPrice,
+            txHash: receipt.hash,
+            gasPrice: receipt.gasPrice?.toString() || "0",
+            transactionFee: ((receipt.gasUsed || 0n) * (receipt.gasPrice || 0n)).toString(),
+            productId: product._id,
+            ngoId: product.associatedNGO._id,
+            cryptoType: "eth"
+          })
+        });
+      }
+
+      toast.success("Product donation successful! Thank you! 🎉");
+      setQuantity(1);
+      
+      // Refresh product details
+      await fetchProductDetails();
+    } catch (error: any) {
+      console.error("Donation error:", error);
+      if (error.code === 4001) {
+        toast.error("Transaction rejected by user");
+      } else {
+        toast.error(error.message || "Donation failed. Please try again.");
+      }
+    }
   };
+//   };
 
   if (loading) {
     return (

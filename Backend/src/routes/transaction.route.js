@@ -10,7 +10,8 @@ import {
     templeMonthlyDonations,
     getTotalDonations,
     getUserTotalDonations,
-    getUserMonthlyDonation
+      getUserMonthlyDonation,
+    recordBlockchainDonation
 } from "../controllers/transaction.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/role.middleware.js";
@@ -28,5 +29,9 @@ router.route("/temple-monthly-donations").get(verifyJWT, authorizeRoles("templeA
 router.route("/temple-total-donations").get(verifyJWT, authorizeRoles("templeAdmin"), getTotalDonations);
 router.route("/total-donation-done").get(verifyJWT, authorizeRoles("user"), getUserTotalDonations);
 router.route("/temple-donated-amount").get(verifyJWT, authorizeRoles("user"), getUserMonthlyDonation);
+
+// Blockchain donation routes
+router.route("/blockchain-donation").post(verifyJWT, authorizeRoles("user"), recordBlockchainDonation);
+
 
 export default router

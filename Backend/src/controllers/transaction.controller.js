@@ -421,6 +421,83 @@ const getUserMonthlyDonation = asyncHandler(async (req, res) => {
     );
 });
 
+// ✅ Record Blockchain Donation (NGO, Case, Product)
+const recordBlockchainDonation = asyncHandler(async (req, res) => {
+    const {
+        donationType, // "ngo-donation", "case-donation", "product-donation"
+        amount,
+        txHash,
+        gasPrice,
+        transactionFee,
+        ngoId,
+        caseId,
+        productId,
+        cryptoType = "eth",
+    } = req.body;
+
+    // Validation
+    if (!donationType || !amount || !txHash || !gasPrice || !transactionFee) {
+        throw new ApiError(400, "All fields are required");
+    }
+
+    if (!["ngo-donation", "case-donation", "product-donation"].includes(donationType)) {
+        throw new ApiError(400, "Invalid donation type");
+    }
+
+    if (isNaN(amount) || Number(amount) <= 0) {
+        throw new ApiError(400, "Invalid donation amount");
+    }
+
+    // Check if transaction already exists
+    const existingTransaction = await Transaction.findOne({ txHash });
+    if (existingTransaction) {
+        throw new ApiError(400, "Transaction already recorded");
+    }
+
+    const sender = req.user;
+    if (!sender || !sender._id) {
+        throw new ApiError(401, "Unauthorized: User not authenticated");
+    }
+
+    // Build transaction data
+    const transactionData = {
+        transactionType: donationType,
+        sender: sender._id,
+        amount,
+        txHash,
+        gasPrice,
+        transactionFee,
+        status: "confirmed",
+        cryptoType: cryptoType.toLowerCase(),
+        purpose: `${donationType} via blockchain`,
+    };
+
+    // Add specific references based on donation type
+    if (donationType === "ngo-donation" && ngoId) {
+        transactionData.ngo = ngoId;
+    } else if (donationType === "case-donation" && caseId) {
+        transactionData.fundraisingCase = caseId;
+        if (ngoId) transactionData.ngo = ngoId;
+    } else if (donationType === "product-donation" && productId) {
+        transactionData.product = productId;
+        if (ngoId) transactionData.ngo = ngoId;
+    }
+
+    // Create transaction record
+    const transaction = await Transaction.create(transactionData);
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(
+                201,
+                transaction,
+                "Blockchain donation recorded successfully"
+            )
+        );
+});
+
+
 export {
     donateToTemple,
     donationHistory,
@@ -432,5 +509,6 @@ export {
     getTotalDonations,
     getUserTotalDonations,
     getUserMonthlyDonation,
-    getTransactionByTxHash
+    getTransactionByTxHash,
+    recordBlockchainDonation
 }

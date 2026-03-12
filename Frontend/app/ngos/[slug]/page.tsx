@@ -87,15 +87,81 @@ export default function NGODetailPage() {
       toast.error("Please enter a valid donation amount");
       return;
     }
+      if (!ngo?.walletAddress) {
+      toast.error("NGO wallet address not found");
+      return;
+    }
 
     setIsDonating(true);
     try {
-      // Here you would implement blockchain donation logic
-      toast.info("Donation feature coming soon! Blockchain integration pending.");
+        const { ethers } = await import("ethers");
+
+      // Check MetaMask
+      if (typeof window === "undefined" || !window.ethereum) {
+        toast.error("Please install MetaMask to donate");
+        window.open("https://metamask.io/download.html", "_blank");
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      // Get contract
+      const contractAddress = process.env.NEXT_PUBLIC_NGO_FUND_ADDRESS;
+      if (!contractAddress) {
+        toast.error("Contract address not configured");
+        return;
+      }
+
+      const contractABI = [
+        "function donateEthToNGO(address ngo) payable"
+      ];
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+      toast.info("Please confirm the transaction in MetaMask...");
+
+      // Send donation
+      const tx = await contract.donateEthToNGO(ngo.walletAddress, {
+        value: ethers.parseEther(donationAmount)
+      });
+
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      const receipt = await tx.wait();
+
+      // Record in backend
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions/blockchain-donation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            donationType: "ngo-donation",
+            amount: donationAmount,
+            txHash: receipt.hash,
+            gasPrice: receipt.gasPrice?.toString() || "0",
+            transactionFee: (receipt.gasUsed * (receipt.gasPrice || 0n)).toString(),
+            ngoId: ngo._id,
+            cryptoType: "eth"
+          })
+        });
+      }
+
+      toast.success("Donation successful! Thank you for your support! 🎉");
       setDonationAmount("");
-    } catch (error) {
+    // Refresh NGO details to show updated donation amount
+      await fetchNGODetails();
+    } catch (error: any) {
       console.error("Donation error:", error);
-      toast.error("Donation failed. Please try again.");
+     if (error.code === 4001) {
+        toast.error("Transaction rejected by user");
+      } else if (error.code === "ACTION_REJECTED") {
+        toast.error("Transaction rejected");
+      } else {
+        toast.error(error.message || "Donation failed. Please try again.");
+      }
     } finally {
       setIsDonating(false);
     }
