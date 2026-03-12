@@ -24,7 +24,7 @@ export default function SuperAdminSidebar() {
     { id: "ngo-list", label: "Pending NGOs", icon: CheckSquare, path: "/superadmin/ngo-list" },
     { id: "temple-list", label: "All NGOs", icon: Building2, path: "/superadmin/temple-list" },
     { id: "products", label: "Products", icon: Package, path: "/superadmin/products" },
-    { id: "register-temple", label: "Cases", icon: Heart, path: "/superadmin/register-temple" },
+      { id: "cases", label: "Cases", icon: Heart, path: "/superadmin/cases" },
   ];
 
   const handleSectionChange = (path: string, sectionId: string) => {

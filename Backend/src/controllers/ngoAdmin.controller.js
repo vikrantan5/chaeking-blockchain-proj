@@ -40,7 +40,7 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
     if (!emailRegex.test(email)) {
         throw new ApiError(400, "Invalid email format");
     }
@@ -196,16 +196,36 @@ export const loginNGOAdmin = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid login type");
     }
 
-    // Check if email is verified (status should be active)
-    if (user.status !== 'active') {
-        throw new ApiError(400, "Please verify your email first");
-    }
-
-    // Check password
+ // Check password first before checking status
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid credentials");
     }
+
+      // Get NGO details to check approval status
+    const ngo = await NGO.findOne({ registeredBy: user._id });
+    if (!ngo) {
+        throw new ApiError(404, "NGO details not found. Please contact support.");
+    }
+
+    // Check if NGO is approved
+    if (ngo.approvalStatus === 'pending') {
+        throw new ApiError(403, "Your NGO registration is pending admin approval. Please wait for approval.");
+    }
+
+    if (ngo.approvalStatus === 'rejected') {
+        throw new ApiError(403, `Your NGO registration was rejected. Reason: ${ngo.rejectionReason || 'Not specified'}`);
+    }
+
+    // Check if email is verified and account is active
+    if (user.status === 'pending') {
+        throw new ApiError(400, "Please verify your email first with the OTP sent to your email.");
+    }
+
+    if (user.status !== 'active') {
+        throw new ApiError(400, "Your account is not active. Please contact support.");
+    }
+
 
     // Generate access and refresh tokens
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
@@ -218,8 +238,7 @@ export const loginNGOAdmin = asyncHandler(async (req, res) => {
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-    // Get NGO details
-    const ngo = await NGO.findOne({ registeredBy: user._id });
+
 
     return res
         .status(200)

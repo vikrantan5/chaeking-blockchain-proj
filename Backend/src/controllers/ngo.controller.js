@@ -436,15 +436,20 @@ export const approveNGO = asyncHandler(async (req, res) => {
     
     await ngo.save();
 
-//    / Update user role and status to allow dashboard access
-    await User.findByIdAndUpdate(ngo.registeredBy, {
+ // Update user role and status to allow dashboard access
+    const user = await User.findByIdAndUpdate(
+        ngo.registeredBy, 
+        {
         role: 'ngoAdmin',
            isVerified: true,
         status: 'active' // Set status to active so NGO admin can login
-    });
+     },
+        { new: true } // Return updated document
+    );
+
 
     // Send approval email notification
-    const user = ngo.registeredBy;
+    
     if (user && user.email) {
         try {
             const approvalEmailContent = `
