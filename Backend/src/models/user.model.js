@@ -69,6 +69,10 @@ const userSchema = new Schema({
         enum: ['active', 'pending', 'suspended'],
         default: 'active'
     },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
     loginType: {
         type: String,
         enum: ['email', 'google', 'facebook', 'phone'],

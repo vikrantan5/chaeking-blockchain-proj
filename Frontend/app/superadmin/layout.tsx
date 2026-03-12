@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Sidebar from "@/app/components/Sidebar1";
+import SuperAdminSidebar from "@/app/components/SuperAdminSidebar";
 import Navbar from "@/app/components/Navbar1";
 import AuthWrapper from "@/app/components/AuthWrapper";
 
@@ -18,7 +18,7 @@ export default function SuperAdminLayout({
 
         {/* Sidebar + main content */}
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
+           <SuperAdminSidebar />
           <div className="flex-1 overflow-auto">
             <main className="p-8">{children}</main>
           </div>

@@ -27,7 +27,7 @@ export const donateToNGO = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Donation amount must be a positive number");
     }
 
-    const ngo = await NGO.findById(ngoId);
+    const ngo = await NGO.findById(ngoId).populate('registeredBy');
     if (!ngo) {
         throw new ApiError(404, "NGO not found");
     }
@@ -436,14 +436,77 @@ export const approveNGO = asyncHandler(async (req, res) => {
     
     await ngo.save();
 
-    // Update user role if needed
+//    / Update user role and status to allow dashboard access
     await User.findByIdAndUpdate(ngo.registeredBy, {
         role: 'ngoAdmin',
-        isVerified: true
+           isVerified: true,
+        status: 'active' // Set status to active so NGO admin can login
     });
 
+    // Send approval email notification
+    const user = ngo.registeredBy;
+    if (user && user.email) {
+        try {
+            const approvalEmailContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .button { display: inline-block; padding: 12px 30px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🎉 NGO Approved!</h1>
+                    </div>
+                    <div class="content">
+                        <p>Dear <strong>${user.name}</strong>,</p>
+                        <p>Congratulations! Your NGO <strong>${ngo.ngoName}</strong> has been approved by our admin team.</p>
+                        
+                        <div class="details">
+                            <h3>What's Next?</h3>
+                            <ul>
+                                <li>✅ You can now access your NGO Admin Dashboard</li>
+                                <li>✅ Start receiving crypto donations from users</li>
+                                <li>✅ Create fundraising cases for specific causes</li>
+                                <li>✅ View donation transparency reports</li>
+                            </ul>
+                        </div>
+
+                        ${remarks ? `<div class="details"><p><strong>Admin Remarks:</strong> ${remarks}</p></div>` : ''}
+
+                        <p>You can now login to your NGO admin dashboard using your registered email and password.</p>
+                        
+                        <center>
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" class="button">Login to Dashboard</a>
+                        </center>
+
+                        <p>Thank you for joining our platform to make a difference!</p>
+                        <p>Best regards,<br>Blockchain NGO Platform Team</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            `;
+
+            await sendEmail(
+                user.email,
+                "🎉 Your NGO has been Approved!",
+                approvalEmailContent
+            );
+        } catch (emailError) {
+            console.error("Failed to send approval email:", emailError);
+            // Don't throw error, approval should still succeed even if email fails
+        }
+    }
     return res.status(200).json(
-        new ApiResponse(200, ngo, "NGO approved successfully")
+       new ApiResponse(200, ngo, "NGO approved successfully and notification sent")
     );
 });
 
