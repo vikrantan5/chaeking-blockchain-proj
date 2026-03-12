@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import \"./NGORegistry.sol\";
+import "./NGORegistry.sol";
 
 interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
@@ -36,13 +36,13 @@ contract NGOFund {
 
     // Modifier to check super admin
     modifier onlySuperAdmin() {
-        require(msg.sender == ngoRegistry.superAdmin(), \"Not super admin\");
+        require(msg.sender == ngoRegistry.superAdmin(), "Not super admin");
         _;
     }
 
     // Constructor
     constructor(address _ngoRegistry) {
-        require(_ngoRegistry != address(0), \"Invalid registry address\");
+        require(_ngoRegistry != address(0), "Invalid registry address");
         ngoRegistry = NGORegistry(_ngoRegistry);
     }
 
@@ -51,8 +51,8 @@ contract NGOFund {
     // ==============================
 
     function donateEthToNGO(address ngo) external payable {
-        require(msg.value > 0, \"Donation amount must be greater than zero\");
-        require(ngoRegistry.isRegistered(ngo), \"NGO is not registered\");
+        require(msg.value > 0, "Donation amount must be greater than zero");
+        require(ngoRegistry.isRegistered(ngo), "NGO is not registered");
 
         ethFunds[ngo] += msg.value;
         emit EthDonationReceived(msg.sender, ngo, msg.value);
@@ -63,8 +63,8 @@ contract NGOFund {
     // ==============================
 
     function donateToCase(bytes32 caseId, address ngo) external payable {
-        require(msg.value > 0, \"Donation amount must be greater than zero\");
-        require(ngoRegistry.isRegistered(ngo), \"NGO is not registered\");
+        require(msg.value > 0, "Donation amount must be greater than zero");
+        require(ngoRegistry.isRegistered(ngo), "NGO is not registered");
 
         // Store case funds separately
         caseFunds[caseId] += msg.value;
@@ -75,11 +75,11 @@ contract NGOFund {
 
     // Release case funds to NGO (only super admin)
     function releaseCaseFunds(bytes32 caseId) external onlySuperAdmin {
-        require(caseFunds[caseId] > 0, \"No funds to release\");
-        require(!caseFundsReleased[caseId], \"Funds already released\");
+        require(caseFunds[caseId] > 0, "No funds to release");
+        require(!caseFundsReleased[caseId], "Funds already released");
 
         address ngo = caseToNGO[caseId];
-        require(ngo != address(0), \"Invalid case\");
+        require(ngo != address(0), "Invalid case");
 
         uint256 amount = caseFunds[caseId];
         caseFundsReleased[caseId] = true;
@@ -105,8 +105,8 @@ contract NGOFund {
     // ==============================
 
     function donateProduct(bytes32 productId, address ngo) external payable {
-        require(msg.value > 0, \"Product price must be greater than zero\");
-        require(ngoRegistry.isRegistered(ngo), \"NGO is not registered\");
+        require(msg.value > 0, "Product price must be greater than zero");
+        require(ngoRegistry.isRegistered(ngo), "NGO is not registered");
 
         // Add to NGO's funds
         ethFunds[ngo] += msg.value;
@@ -125,9 +125,9 @@ contract NGOFund {
     // ==============================
 
     function withdrawEth(uint256 amount) external {
-        require(ngoRegistry.isRegistered(msg.sender), \"Only registered NGO can withdraw\");
-        require(amount > 0, \"Withdraw amount must be greater than zero\");
-        require(ethFunds[msg.sender] >= amount, \"Insufficient ETH funds\");
+        require(ngoRegistry.isRegistered(msg.sender), "Only registered NGO can withdraw");
+        require(amount > 0, "Withdraw amount must be greater than zero");
+        require(ethFunds[msg.sender] >= amount, "Insufficient ETH funds");
 
         ethFunds[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
@@ -144,25 +144,25 @@ contract NGOFund {
     // ==============================
 
     function donateTokenToNGO(address token, address ngo, uint256 amount) external {
-        require(amount > 0, \"Donation amount must be greater than zero\");
-        require(ngoRegistry.isRegistered(ngo), \"NGO is not registered\");
+        require(amount > 0, "Donation amount must be greater than zero");
+        require(ngoRegistry.isRegistered(ngo), "NGO is not registered");
 
         bool success = IERC20(token).transferFrom(msg.sender, address(this), amount);
-        require(success, \"Token transfer failed\");
+        require(success, "Token transfer failed");
 
         tokenFunds[token][ngo] += amount;
         emit TokenDonationReceived(msg.sender, token, ngo, amount);
     }
 
     function withdrawTokenFunds(address token, uint256 amount) external {
-        require(ngoRegistry.isRegistered(msg.sender), \"Only registered NGO can withdraw\");
-        require(amount > 0, \"Withdraw amount must be greater than zero\");
-        require(tokenFunds[token][msg.sender] >= amount, \"Insufficient token funds\");
+        require(ngoRegistry.isRegistered(msg.sender), "Only registered NGO can withdraw");
+        require(amount > 0, "Withdraw amount must be greater than zero");
+        require(tokenFunds[token][msg.sender] >= amount, "Insufficient token funds");
 
         tokenFunds[token][msg.sender] -= amount;
 
         bool success = IERC20(token).transfer(msg.sender, amount);
-        require(success, \"Token transfer failed\");
+        require(success, "Token transfer failed");
 
         emit TokenFundsWithdrawn(token, msg.sender, amount);
     }

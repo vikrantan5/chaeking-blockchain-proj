@@ -12,7 +12,7 @@ contract NGORegistry {
     event SuperAdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     modifier onlySuperAdmin() {
-        require(msg.sender == superAdmin, \"Not super admin\");
+        require(msg.sender == superAdmin, "Not super admin");
         _;
     }
 
@@ -21,14 +21,14 @@ contract NGORegistry {
     }
 
     function registerNGO(address _ngoWallet) external onlySuperAdmin {
-        require(!registeredNGOs[_ngoWallet], \"Already registered\");
+        require(!registeredNGOs[_ngoWallet], "Already registered");
         registeredNGOs[_ngoWallet] = true;
         ngoList.push(_ngoWallet);
         emit NGORegistered(_ngoWallet);
     }
 
     function removeNGO(address _ngoWallet) external onlySuperAdmin {
-        require(registeredNGOs[_ngoWallet], \"Not registered\");
+        require(registeredNGOs[_ngoWallet], "Not registered");
 
         registeredNGOs[_ngoWallet] = false;
 
@@ -53,7 +53,7 @@ contract NGORegistry {
     }
 
     function transferSuperAdmin(address newAdmin) external onlySuperAdmin {
-        require(newAdmin != address(0), \"Invalid address\");
+        require(newAdmin != address(0), "Invalid address");
         emit SuperAdminTransferred(superAdmin, newAdmin);
         superAdmin = newAdmin;
     }
