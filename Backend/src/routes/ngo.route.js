@@ -22,6 +22,13 @@ const router = Router();
 
 // Public routes
 router.route("/").get(optionalJWT, getAllNGOs);
+// Protected dashboard route (MUST come before /:id route)
+router.route("/dashboard").get(
+    verifyJWT,
+      authorizeRoles("ngoAdmin"),
+    getNGODashboard
+);
+
 router.route("/:id").get(optionalJWT, getNGOById);
 router.route("/:ngoId/donations").get(getNGODonations);
 
@@ -48,11 +55,11 @@ router.route("/register").post(
     registerNGO
 );
 
-router.route("/dashboard").get(
-    verifyJWT,
-      authorizeRoles("ngoAdmin"),
-    getNGODashboard
-);
+// router.route("/dashboard").get(
+//     verifyJWT,
+//       authorizeRoles("ngoAdmin"),
+//     getNGODashboard
+// );
 
 
 router.route("/:ngoId/donate").post(
