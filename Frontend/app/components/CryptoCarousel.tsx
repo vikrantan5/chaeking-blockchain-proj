@@ -8,9 +8,9 @@ interface CryptoCarouselProps {
 }
 
 const CryptoCarousel: React.FC<CryptoCarouselProps> = ({ onSelectCrypto }) => {
-  const [allCryptoPrices, setAllCryptoPrices] = useState([]);
+  const [allCryptoPrices, setAllCryptoPrices] = useState<any[]>([]);
   const [loadingPrices, setLoadingPrices] = useState(true);
-  const [priceError, setPriceError] = useState(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
   const [marketStats, setMarketStats] = useState({
     totalMarketCap: 0,
     totalVolume: 0,
@@ -46,7 +46,7 @@ const CryptoCarousel: React.FC<CryptoCarouselProps> = ({ onSelectCrypto }) => {
 
         const specificData = await specificResponse.json();
 
-        let carouselCurrencies = marketData.map((coin) => ({
+               let carouselCurrencies = marketData.map((coin: any) => ({
           id: coin.id,
           name: coin.name,
           symbol: coin.symbol.toUpperCase(),
@@ -58,7 +58,7 @@ const CryptoCarousel: React.FC<CryptoCarouselProps> = ({ onSelectCrypto }) => {
 
         // Ensure MATIC is included
         const maticInCarousel = carouselCurrencies.find(
-          (coin) => coin.id === "matic-network"
+          (coin: any) => coin.id === "matic-network"
         );
         if (!maticInCarousel && specificData["matic-network"]) {
           const maticMarketData = await fetch(
@@ -85,13 +85,13 @@ const CryptoCarousel: React.FC<CryptoCarouselProps> = ({ onSelectCrypto }) => {
         }
 
         const uniqueCurrencies = Array.from(
-          new Map(carouselCurrencies.map((item) => [item.id, item])).values()
+          new Map(carouselCurrencies.map((item: any) => [item.id, item])).values()
         ).slice(0, 18);
 
         setAllCryptoPrices(uniqueCurrencies);
 
         const totalMarketCap = uniqueCurrencies.reduce(
-          (sum, crypto) => sum + (crypto.market_cap || 0),
+          (sum: number, crypto: any) => sum + (crypto.market_cap || 0),
           0
         );
         const totalVolume = totalMarketCap * 0.05; // This calculation seems arbitrary, consider actual total volume if available
@@ -114,7 +114,7 @@ const CryptoCarousel: React.FC<CryptoCarouselProps> = ({ onSelectCrypto }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const formatPrice = (price) => {
+  const formatPrice = (price: number) => {
     if (price >= 1) {
       return price.toLocaleString("en-US", {
         minimumFractionDigits: 2,
@@ -124,7 +124,7 @@ const CryptoCarousel: React.FC<CryptoCarouselProps> = ({ onSelectCrypto }) => {
     return price.toFixed(6);
   };
 
-  const formatMarketCap = (marketCap) => {
+  const formatMarketCap = (marketCap: number) => {
     if (marketCap >= 1e12) {
       return (marketCap / 1e12).toFixed(1) + "T";
     } else if (marketCap >= 1e9) {
@@ -187,7 +187,7 @@ const CryptoCarousel: React.FC<CryptoCarouselProps> = ({ onSelectCrypto }) => {
                   key={`${crypto.id}-${index}`}
                   className="flex-shrink-0 w-80 mx-2 bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-orange-200/50 hover:border-orange-400/70 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer"
                   onClick={() => {
-                    const cryptoMapping = {
+                     const cryptoMapping: { [key: string]: string } = {
                       bitcoin: "bitcoin",
                       ethereum: "ethereum",
                       binancecoin: "bnb",

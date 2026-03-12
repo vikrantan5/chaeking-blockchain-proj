@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-
-export default function TempleReport({ templeId }) {
+export default function TempleReport() {
   const [reportType, setReportType] = useState("weekly");
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +43,7 @@ export default function TempleReport({ templeId }) {
 
   useEffect(() => {
     fetchReport();
-  }, [templeId, reportType]);
+ }, [reportType]);
 
   const handleDownloadPDF = async () => {
     try {

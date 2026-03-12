@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import styles from "@/app/components/styles/TempleLoader.module.css";
 
-const TempleLoader = ({ onLoadingComplete }) => {
+const TempleLoader = ({ onLoadingComplete }: { onLoadingComplete?: () => void }) => {
   const [loadingText, setLoadingText] = useState('Connecting to Sacred Blockchain...');
-  const [particles, setParticles] = useState([]);
+  const [particles, setParticles] = useState<any[]>([]);
 
   const loadingTexts = [
     'Connecting to Sacred Blockchain...',
