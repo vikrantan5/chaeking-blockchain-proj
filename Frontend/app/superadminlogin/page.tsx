@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff, Shield, Lock, Mail, ArrowRight, CheckCircle2 } from 'lucide-react';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ngo-fund-tracker.preview.emergentagent.com/api/v1';
+
 
 export default function SuperAdminLogin() {
   const [formData, setFormData] = useState({
@@ -60,7 +62,7 @@ export default function SuperAdminLogin() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5050/api/v1/superAdmin/login-superAdmin", {
+       const response = await fetch(`${API_BASE_URL}/superAdmin/login-superAdmin`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

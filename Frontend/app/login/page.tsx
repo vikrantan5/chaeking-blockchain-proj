@@ -21,7 +21,7 @@ export default function UnifiedLogin() {
   ];
 
   const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
     return emailRegex.test(email);
   };
 
@@ -39,7 +39,7 @@ export default function UnifiedLogin() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = async () => {
+    const handleLogin = async () => {
     if (!validateForm()) {
       toast.error("Please correct the errors in the form.");
       return;
@@ -62,7 +62,7 @@ export default function UnifiedLogin() {
         redirectPath = "/superadmin/dashboard";
       }
 
-      if (result.success) {
+      if (result?.success) {
         toast.success(`Logged in successfully as ${roles.find(r => r.id === activeRole)?.label}!`);
         sessionStorage.setItem("accessToken", result.data.accessToken);
         localStorage.setItem("refreshToken", result.data.refreshToken);
@@ -70,16 +70,15 @@ export default function UnifiedLogin() {
         localStorage.setItem("user_role", activeRole);
         router.push(redirectPath);
       } else {
-        toast.error(result.message || "Login failed");
+        toast.error(result?.message || "Login failed");
       }
     } catch (err: any) {
       console.error("Login error:", err);
-      toast.error(err.message || "An error occurred. Please try again.");
+      toast.error(err?.response?.data?.message || err.message || "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
-
   const activeRoleData = roles.find(r => r.id === activeRole)!;
 
   return (

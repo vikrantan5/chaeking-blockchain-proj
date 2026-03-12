@@ -15,6 +15,9 @@ import {
 import { useMetamask } from "../hooks/useMetamask";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ngo-fund-tracker.preview.emergentagent.com/api/v1';
+
 export default function TempleFundSignup() {
   const router = useRouter();
 
@@ -52,12 +55,12 @@ useEffect(() => {
 
 
   // Validation functions
-  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const validateMobile = (phone: string) => /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""));
+  const validateEmail = (email: string) => /^[^s@]+@[^s@]+.[^s@]+$/.test(email);
+  const validateMobile = (phone: string) => /^[6-9]d{9}$/.test(phone.replace(/s/g, ""));
   const validatePassword = (password: string) =>
-    password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
+    password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*d)/.test(password);
   const validateName = (name: string) =>
-    name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name);
+    name.trim().length >= 2 && /^[a-zA-Zs]+$/.test(name);
 
   // Step 1: User Details Validation
   const validateStep1 = () => {
@@ -157,7 +160,7 @@ useEffect(() => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5050/api/v1/users/register", {
+      const response = await fetch(`${API_BASE_URL}/users/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -197,7 +200,7 @@ useEffect(() => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5050/api/v1/users/verify-email", {
+      const response = await fetch(`${API_BASE_URL}/users/verify-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -257,7 +260,7 @@ useEffect(() => {
   setIsLoading(true);
   try {
     const accessToken = sessionStorage.getItem("accessToken");
-    const response = await fetch("http://localhost:5050/api/v1/users/store-wallet-address", {
+    const response = await fetch(`${API_BASE_URL}/users/store-wallet-address`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -295,7 +298,7 @@ useEffect(() => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5050/api/v1/users/resend-otp", {
+      const response = await fetch(`${API_BASE_URL}/users/resend-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
