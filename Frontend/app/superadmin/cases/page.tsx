@@ -29,6 +29,15 @@ export default function SuperAdminCasesPage() {
     deadline: "",
   });
 const [caseImages, setCaseImages] = useState<FileList | null>(null);
+ const normalizeListPayload = (payload: any, nestedKey?: string) => {
+    if (Array.isArray(payload)) return payload;
+    if (nestedKey && Array.isArray(payload?.[nestedKey])) return payload[nestedKey];
+    if (Array.isArray(payload?.items)) return payload.items;
+    return [];
+  };
+
+  const isApprovedNGO = (ngo: any) =>
+    ngo?.approvalStatus === "approved" || ngo?.status === "approved" || ngo?.approved === true;
   useEffect(() => {
     const user = localStorage.getItem("user_data");
     if (!user) {
@@ -47,7 +56,13 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = sessionStorage.getItem("accessToken");
+        const token = sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+
+      if (!token) {
+        toast.error("Session expired. Please login again.");
+        router.push("/superadminlogin");
+        return;
+      }
       
       // Fetch all cases
          const casesRes = await fetch(`${API_URL}/cases`, {
@@ -66,13 +81,12 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
       const ngosData = await ngosRes.json();
       
       if (casesData.success) {
-        setCases(casesData.data || []);
+         setCases(normalizeListPayload(casesData.data, "cases"));
       }
       
       if (ngosData.success) {
-        const approvedNGOs = Array.isArray(ngosData.data) 
-          ? ngosData.data.filter((ngo: any) => ngo.approvalStatus === 'approved')
-          : (ngosData.data?.ngos || []).filter((ngo: any) => ngo.approvalStatus === 'approved');
+         const ngoList = normalizeListPayload(ngosData.data, "ngos");
+        const approvedNGOs = ngoList.filter((ngo: any) => isApprovedNGO(ngo));
         setNgos(approvedNGOs);
       }
     } catch (err) {
@@ -92,6 +106,11 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
 
   const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
+
+     if (!formData.associatedNGO) {
+      toast.error("Please select an approved NGO for this case.");
+      return;
+    }
     
     try {
          const token = sessionStorage.getItem("accessToken");
@@ -559,6 +578,11 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
                         </option>
                       ))}
                     </select>
+                      {ngos.length === 0 && (
+                      <p className="mt-2 text-xs text-red-600" data-testid="no-approved-ngo-warning">
+                        No approved NGOs found. Approve NGO first from dashboard.
+                      </p>
+                    )}
                   </div>
 
                   <div>

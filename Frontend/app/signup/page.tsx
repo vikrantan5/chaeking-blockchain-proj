@@ -19,6 +19,7 @@ import {
 import { useMetamask } from "../hooks/useMetamask";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { ethers } from "ethers";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5050/api/v1';
 
@@ -57,14 +58,17 @@ export default function SignupPage() {
 
   useEffect(() => {
     const accessToken = sessionStorage.getItem("accessToken");
+    
     if (accessToken) {
       router.push("/user/dashboard");
     }
   }, [router]);
 
 // Validation functions
-const validateEmail = (email: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const validateEmail = (email: string) => {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email.trim());
+};
 
 const validateMobile = (phone: string) =>
   /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""));
@@ -330,6 +334,18 @@ const validateName = (name: string) =>
     setIsLoading(true);
     try {
       const accessToken = sessionStorage.getItem("accessToken");
+      let connectedWallet = account || localStorage.getItem("connectedAccount");
+
+      if (!connectedWallet && typeof window !== "undefined" && (window as any).ethereum) {
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        connectedWallet = await signer.getAddress();
+      }
+
+      if (!connectedWallet) {
+        toast.error("Please connect wallet before completing registration.");
+        return;
+      }
       
       if (userType === 'user') {
         // Store wallet address for regular user
@@ -339,7 +355,7 @@ const validateName = (name: string) =>
             "Content-Type": "application/json",
             "Authorization": `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ walletAddress: account }),
+          body: JSON.stringify({ walletAddress: connectedWallet }),
         });
 
         const result = await response.json();
@@ -360,7 +376,7 @@ const validateName = (name: string) =>
             "Content-Type": "application/json",
             "Authorization": `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ walletAddress: account }),
+           body: JSON.stringify({ walletAddress: connectedWallet }),
         });
 
         const result = await response.json();

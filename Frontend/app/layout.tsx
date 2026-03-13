@@ -3,7 +3,7 @@
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import GlobalBackButton from "./components/GlobalBackButton";
 export default function RootLayout({
   children,
 }: {
@@ -12,6 +12,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#FEF3E2] text-[#3A0519] font-sans">
+          <GlobalBackButton />
         {children}
         <ToastContainer
           position="top-center"

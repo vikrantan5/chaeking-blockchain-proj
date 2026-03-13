@@ -46,10 +46,10 @@ export const useMetamask = () => {
       setAccount(connectedAccount);
       localStorage.setItem("connectedAccount", connectedAccount);
 
-      if (!sessionStorage.getItem("walletConnectedOnce")) {
-        sessionStorage.setItem("walletConnectedOnce", "true");
-        window.location.reload();
-      }
+      // if (!sessionStorage.getItem("walletConnectedOnce")) {
+      //   sessionStorage.setItem("walletConnectedOnce", "true");
+      //   window.location.reload();
+      // }
 
       const { chainId } = await ethProvider.getNetwork();
       if (chainId !== BigInt(31337)) {
@@ -72,7 +72,7 @@ export const useMetamask = () => {
                     symbol: "ETH",
                     decimals: 18,
                   },
-                    rpcUrls: [process.env.NEXT_PUBLIC_HARDHAT_RPC_URL || "http://127.0.0.1:8545"],
+                    rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545"],
                 },
               ],
             });

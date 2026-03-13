@@ -39,7 +39,8 @@ export default function ProductDetailsPage() {
 const handleDonate = async () => {
   const ngoWalletAddress =
     product?.associatedNGO?.walletAddress ||
-    product?.associatedNGO?.registeredBy?.walletAddress;
+product?.associatedNGO?.registeredBy?.walletAddress ||
+    product?.associatedNGO?.wallet;
 
   const totalPrice = product.priceInCrypto * quantity;
 

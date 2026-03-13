@@ -49,7 +49,11 @@ export default function CaseDetailsPage() {
       toast.error("Please enter a valid donation amount");
       return;
     }
-      if (!caseData?.associatedNGO?.walletAddress) {
+      const ngoWalletAddress =
+      caseData?.associatedNGO?.walletAddress ||
+      caseData?.associatedNGO?.registeredBy?.walletAddress;
+
+      if (!ngoWalletAddress) {
       toast.error("Selected case NGO wallet is missing");
       return;
     }
@@ -76,7 +80,7 @@ export default function CaseDetailsPage() {
 
       const tx = await contract.donateToCase(
         toBytes32Id(caseData._id),
-        caseData.associatedNGO.walletAddress,
+         ngoWalletAddress,
         { value: valueWei }
       );
 
