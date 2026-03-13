@@ -27,7 +27,7 @@ export default function SuperAdminCasesPage() {
     targetAmount: "",
     deadline: "",
   });
-
+const [caseImages, setCaseImages] = useState<FileList | null>(null);
   useEffect(() => {
     const user = localStorage.getItem("user_data");
     if (!user) {
@@ -102,21 +102,30 @@ export default function SuperAdminCasesPage() {
         story: formData.beneficiaryStory
       };
 
+        const submitData = new FormData();
+      submitData.append("caseTitle", formData.caseTitle);
+      submitData.append("caseType", formData.caseType);
+      submitData.append("description", formData.description);
+      submitData.append("beneficiaryDetails", JSON.stringify(beneficiaryDetails));
+      submitData.append("associatedNGO", formData.associatedNGO);
+      submitData.append("targetAmount", formData.targetAmount);
+      submitData.append("deadline", formData.deadline);
+
+      // Append images if selected
+      if (caseImages && caseImages.length > 0) {
+        for (let i = 0; i < caseImages.length; i++) {
+          submitData.append("images", caseImages[i]);
+        }
+      }
+
       const response = await fetch(`${API_URL}/fundraisingCase/create`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+         
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          caseTitle: formData.caseTitle,
-          caseType: formData.caseType,
-          description: formData.description,
-          beneficiaryDetails: JSON.stringify(beneficiaryDetails),
-          associatedNGO: formData.associatedNGO,
-          targetAmount: parseFloat(formData.targetAmount),
-          deadline: formData.deadline
-        })
+        body: submitData
+        
       });
 
       const data = await response.json();
@@ -124,6 +133,7 @@ export default function SuperAdminCasesPage() {
       if (data.success) {
         toast.success("Fundraising case created successfully!");
         setShowCreateModal(false);
+        setCaseImages(null);
         setFormData({
           caseTitle: "",
           caseType: "medical",
@@ -151,18 +161,26 @@ export default function SuperAdminCasesPage() {
     
     try {
       const token = localStorage.getItem("accessToken");
+
+          const submitData = new FormData();
+      submitData.append("targetAmount", formData.targetAmount);
+      submitData.append("deadline", formData.deadline);
+
+      // Append new images if selected
+      if (caseImages && caseImages.length > 0) {
+        for (let i = 0; i < caseImages.length; i++) {
+          submitData.append("images", caseImages[i]);
+        }
+      }
+
       
       const response = await fetch(`${API_URL}/fundraisingCase/${selectedCase._id}`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
+          
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          targetAmount: parseFloat(formData.targetAmount),
-          currentAmount: parseFloat(formData.targetAmount), // Update current amount
-          deadline: formData.deadline
-        })
+        body: submitData
       });
 
       const data = await response.json();
@@ -171,6 +189,7 @@ export default function SuperAdminCasesPage() {
         toast.success("Case updated successfully!");
         setShowEditModal(false);
         setSelectedCase(null);
+         setCaseImages(null);
         fetchData();
       } else {
         toast.error(data.message || "Failed to update case");
@@ -540,6 +559,18 @@ export default function SuperAdminCasesPage() {
                       data-testid="deadline-input"
                     />
                   </div>
+                       <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Case Images</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => setCaseImages(e.target.files)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      data-testid="case-images-input"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Upload images for this case (optional, multiple files allowed)</p>
+                  </div>
                 </div>
               </div>
 
@@ -601,6 +632,22 @@ export default function SuperAdminCasesPage() {
                   required
                   data-testid="edit-deadline-input"
                 />
+              </div>
+
+                <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Add More Images</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setCaseImages(e.target.files)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  data-testid="edit-case-images-input"
+                />
+                <p className="text-xs text-gray-500 mt-1">Upload additional images (optional, multiple files allowed)</p>
+                {selectedCase?.images && selectedCase.images.length > 0 && (
+                  <p className="text-xs text-green-600 mt-2">Current images: {selectedCase.images.length} image(s) uploaded</p>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">

@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { Building2, TrendingUp, Users, Package, LogOut, Heart } from "lucide-react";
 import { apiClient } from "../../utils/api";
+ const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
 export default function NGOAdminDashboard() {
   const router = useRouter();
@@ -48,6 +51,44 @@ export default function NGOAdminDashboard() {
   const handleLogout = () => {
     sessionStorage.clear();
     localStorage.clear();
+
+     const handlePhotoUpload = async () => {
+    if (!photoFile) {
+      toast.error("Please select a photo first");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("photoGallery", photoFile);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ngo/ngos/${ngoData._id}`, {
+        method: "PUT",
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
+        },
+        body: formData,
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success("Photo uploaded successfully!");
+        setShowPhotoUpload(false);
+        setPhotoFile(null);
+        await loadDashboardData();
+      } else {
+        toast.error(data.message || "Failed to upload photo");
+      }
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      toast.error("Failed to upload photo");
+    } finally {
+      setIsUploading(false);
+    }
+  };
     toast.success("Logged out successfully");
     router.push("/login");
   };
