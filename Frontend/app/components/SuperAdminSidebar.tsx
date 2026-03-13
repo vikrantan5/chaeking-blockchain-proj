@@ -22,7 +22,7 @@ export default function SuperAdminSidebar() {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/superadmin/dashboard" },
     { id: "ngo-list", label: "Pending NGOs", icon: CheckSquare, path: "/superadmin/ngo-list" },
-    { id: "temple-list", label: "All NGOs", icon: Building2, path: "/superadmin/temple-list" },
+    // { id: "temple-list", label: "All NGOs", icon: Building2, path: "/superadmin/temple-list" },
     { id: "products", label: "Products", icon: Package, path: "/superadmin/products" },
       { id: "cases", label: "Cases", icon: Heart, path: "/superadmin/cases" },
   ];
