@@ -39,6 +39,15 @@ router.route("/:caseId/update").patch(
     updateCase
 );
 
+router.route("/:caseId").put(
+    verifyJWT,
+    authorizeRoles("superAdmin"),
+    upload.fields([
+        { name: "images", maxCount: 10 }
+    ]),
+    updateCase
+);
+
 router.route("/:caseId/close").post(
     verifyJWT,
     authorizeRoles("superAdmin"),

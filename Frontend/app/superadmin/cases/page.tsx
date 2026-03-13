@@ -49,7 +49,7 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
       const token = localStorage.getItem("accessToken");
       
       // Fetch all cases
-      const casesRes = await fetch(`${API_URL}/fundraisingCase/cases`, {
+         const casesRes = await fetch(`${API_URL}/cases`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -57,7 +57,7 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
       const casesData = await casesRes.json();
       
       // Fetch all approved NGOs
-      const ngosRes = await fetch(`${API_URL}/ngo/ngos`, {
+        const ngosRes = await fetch(`${API_URL}/ngos`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -118,7 +118,7 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
         }
       }
 
-      const response = await fetch(`${API_URL}/fundraisingCase/create`, {
+      const response = await fetch(`${API_URL}/cases/create`, {
         method: "POST",
         headers: {
          
@@ -174,7 +174,7 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
       }
 
       
-      const response = await fetch(`${API_URL}/fundraisingCase/${selectedCase._id}`, {
+        const response = await fetch(`${API_URL}/cases/${selectedCase._id}`, {
         method: "PUT",
         headers: {
           
