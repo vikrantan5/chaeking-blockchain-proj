@@ -105,7 +105,7 @@ export default function ProductsPage() {
             {filteredProducts.map((product) => (
               <div
                 key={product._id}
-                onClick={() => router.push(`/products/${product.slug}`)}
+                 onClick={() => router.push(`/products/${product.slug || product._id}`)}
                 className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer overflow-hidden group"
               >
                 {/* Product Image */}

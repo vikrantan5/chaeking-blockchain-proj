@@ -36,161 +36,176 @@ export default function NGOsPage() {
     filterNGOs();
   }, [searchQuery, selectedCity, ngos]);
 
-const fetchNGOs = async () => {
-  try {
-    setIsLoading(true);
+  const fetchNGOs = async () => {
+    try {
+      setIsLoading(true);
 
-    const result = await apiClient.ngos.getAll({ status: "approved" });
+      const result = await apiClient.ngos.getAll({ status: "approved" });
 
-    if (result.success) {
-      const ngoList = result.data?.ngos || result.data || [];
-      setNgos(Array.isArray(ngoList) ? ngoList : []);
-      setFilteredNgos(Array.isArray(ngoList) ? ngoList : []);
-    } else {
-      toast.error("Failed to fetch NGOs");
+      if (result.success) {
+        const ngoList = result.data?.ngos || result.data || [];
+        setNgos(Array.isArray(ngoList) ? ngoList : []);
+        setFilteredNgos(Array.isArray(ngoList) ? ngoList : []);
+      } else {
+        toast.error("Failed to fetch NGOs");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error fetching NGOs");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching NGOs:", error);
-    toast.error("An error occurred while fetching NGOs");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const filterNGOs = () => {
     let filtered = [...ngos];
 
     if (searchQuery) {
-      filtered = filtered.filter(ngo =>
-        ngo.ngoName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ngo.description.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (ngo) =>
+          ngo.ngoName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ngo.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     if (selectedCity) {
-      filtered = filtered.filter(ngo =>
-        ngo.address.city.toLowerCase() === selectedCity.toLowerCase()
+      filtered = filtered.filter(
+        (ngo) =>
+          ngo.address.city.toLowerCase() === selectedCity.toLowerCase()
       );
     }
 
     setFilteredNgos(filtered);
   };
 
- const cities = Array.from(
-  new Set((Array.isArray(ngos) ? ngos : []).map(ngo => ngo.address?.city))
-);
+  const cities = Array.from(
+    new Set((Array.isArray(ngos) ? ngos : []).map((ngo) => ngo.address?.city))
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50" data-testid="ngos-list-page">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="ngos-list-heading">
-              Support Verified NGOs
-            </h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Donate with transparency using blockchain technology. Every donation is tracked and verifiable.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+
+      {/* HERO */}
+      <div className="relative bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 text-white py-20">
+        <div className="max-w-6xl mx-auto text-center px-6">
+          <h1 className="text-5xl font-bold mb-4">
+            Support Verified NGOs
+          </h1>
+
+          <p className="text-lg text-blue-100 max-w-2xl mx-auto">
+            Donate securely using blockchain technology. Every transaction is transparent and verifiable.
+          </p>
         </div>
       </div>
 
-      {/* Search and Filter Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      {/* SEARCH + FILTER */}
+      <div className="max-w-6xl mx-auto px-6 -mt-12">
+        <div className="bg-white rounded-2xl shadow-xl p-6 mt-10 border border-gray-100">
+          <div className="grid md:grid-cols-2 gap-4">
+
             <div className="relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-3 text-gray-400 w-5 h-5" />
               <input
-               data-testid="ngos-search-input"
                 type="text"
-                placeholder="Search NGOs by name or description..."
+                placeholder="Search NGOs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
+
             <div className="relative">
-              <Filter className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+              <Filter className="absolute left-4 top-3 text-gray-400 w-5 h-5" />
+
               <select
-               data-testid="ngos-city-filter-select"
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+                className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="">All Cities</option>
                 {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
+                  <option key={city}>{city}</option>
                 ))}
               </select>
             </div>
+
           </div>
         </div>
       </div>
 
-      {/* NGO Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+      {/* NGO GRID */}
+      <div className="max-w-6xl mx-auto px-6 py-14">
+
         {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex justify-center py-24">
+            <div className="w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : filteredNgos.length === 0 ? (
-          <div className="text-center py-20">
-            <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No NGOs Found</h3>
-            <p className="text-gray-500">Try adjusting your search or filters</p>
+
+          <div className="text-center py-24">
+            <Building2 className="mx-auto w-16 h-16 text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700">
+              No NGOs Found
+            </h3>
+            <p className="text-gray-500 mt-2">
+              Try changing your filters
+            </p>
           </div>
+
         ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="ngos-cards-grid">
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+
             {filteredNgos.map((ngo) => (
+
               <div
                 key={ngo._id}
-                onClick={() => router.push(`/ngos/${ngo.slug}`)}
-                className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden group"
-                 data-testid={`ngo-card-${ngo._id}`}    
+                onClick={() => router.push(`/ngos/${ngo.slug || ngo._id}`)}
+                className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer group"
               >
-                {/* NGO Image */}
-                <div className="relative h-48 bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
+
+                {/* IMAGE */}
+                <div className="h-48 relative overflow-hidden">
+
                   {ngo.coverImage ? (
                     <img
                       src={ngo.coverImage}
-                      alt={ngo.ngoName}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Building2 className="w-20 h-20 text-white opacity-50" />
+                    <div className="flex items-center justify-center h-full bg-gradient-to-r from-blue-500 to-indigo-600">
+                      <Building2 className="w-20 h-20 text-white opacity-60" />
                     </div>
                   )}
+
                 </div>
 
-                {/* NGO Details */}
+
+                {/* CARD BODY */}
                 <div className="p-6">
-                 <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors" data-testid={`ngo-card-name-${ngo._id}`}>
+
+                  <h3 className="text-xl font-bold text-gray-800 group-hover:text-blue-600 transition">
                     {ngo.ngoName}
                   </h3>
 
-                  <div className="flex items-center text-gray-600 mb-3">
+                  <div className="flex items-center text-gray-500 text-sm mt-2">
                     <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-sm">
-                      {ngo.address.city}, {ngo.address.state}
-                    </span>
+                    {ngo.address.city}, {ngo.address.state}
                   </div>
 
-                 <p className="text-gray-600 text-sm mb-4 line-clamp-3" data-testid={`ngo-card-description-${ngo._id}`}>
+                  <p className="text-gray-600 text-sm mt-3 line-clamp-3">
                     {ngo.description}
                   </p>
 
-                  {/* Focus Areas */}
-                  {ngo.focusAreas && ngo.focusAreas.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
+                  {/* FOCUS AREAS */}
+                  {ngo.focusAreas?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4">
                       {ngo.focusAreas.slice(0, 3).map((area, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full"
+                          className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full"
                         >
                           {area}
                         </span>
@@ -198,42 +213,59 @@ const fetchNGOs = async () => {
                     </div>
                   )}
 
-                  {/* Donation Stats */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <div className="flex items-center text-green-600">
+                  {/* FOOTER */}
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t">
+
+                    <div className="flex items-center text-green-600 text-sm font-semibold">
                       <TrendingUp className="w-4 h-4 mr-1" />
-                      <span className="text-sm font-semibold">
-                        {ngo.totalDonationsReceived || 0} ETH Raised
-                      </span>
+                      {ngo.totalDonationsReceived || 0} ETH
                     </div>
-                    <button className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200" data-testid={`ngo-card-donate-button-${ngo._id}`}>
-                      <Heart className="w-4 h-4 mr-1" />
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/ngos/${ngo.slug || ngo._id}`);
+                      }}
+                      className="flex items-center gap-1 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white text-sm font-medium hover:scale-105 transition"
+                    >
+                      <Heart className="w-4 h-4" />
                       Donate
                     </button>
+
                   </div>
+
                 </div>
+
               </div>
+
             ))}
+
           </div>
+
         )}
       </div>
 
-      {/* CTA Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16 mt-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Want to Register Your NGO?</h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Join our transparent donation platform and reach more donors
-          </p>
-          <button
-            onClick={() => router.push('/signup')}
-            className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 shadow-lg"
-              data-testid="ngo-register-cta-button"
-          >
-            Register as NGO Owner
-          </button>
-        </div>
+
+      {/* CTA */}
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-700 text-white py-20 text-center">
+
+        <h2 className="text-3xl font-bold mb-4">
+          Want to Register Your NGO?
+        </h2>
+
+        <p className="text-blue-100 mb-8">
+          Join our transparent donation ecosystem
+        </p>
+
+        <button
+          onClick={() => router.push("/signup")}
+          className="bg-white text-indigo-600 px-8 py-3 rounded-xl font-semibold hover:scale-105 transition shadow-lg"
+        >
+          Register NGO
+        </button>
+
       </div>
+
     </div>
   );
 }

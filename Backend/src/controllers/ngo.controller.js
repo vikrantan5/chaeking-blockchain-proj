@@ -391,7 +391,7 @@ export const getNGOById = asyncHandler(async (req, res) => {
     const ngo = await NGO.findOne({
         $or: queryConditions
     })
-        .populate('registeredBy', 'name email phone')
+        .populate('registeredBy', 'name email phone walletAddress')
         .populate('approvedBy', 'name email')
         .lean();
 
@@ -407,6 +407,9 @@ export const getNGOById = asyncHandler(async (req, res) => {
     // If NGO is not approved, only owner or super admin can view
     if (ngo.approvalStatus !== 'approved' && !isOwner && !isSuperAdmin) {
         throw new ApiError(403, "This NGO profile is not publicly available yet");
+    }
+      if (!ngo.walletAddress && ngo.registeredBy?.walletAddress) {
+        ngo.walletAddress = ngo.registeredBy.walletAddress;
     }
 
     return res.status(200).json(
@@ -450,6 +453,11 @@ export const approveNGO = asyncHandler(async (req, res) => {
         { new: true } // Return updated document
     );
 
+    
+    if (!ngo.walletAddress && user?.walletAddress) {
+        ngo.walletAddress = user.walletAddress;
+        await ngo.save();
+    }
 
     // Send approval email notification
     
@@ -568,11 +576,20 @@ export const updateNGO = asyncHandler(async (req, res) => {
 
     // If not super admin and NGO is approved, restrict certain updates
     if (!isSuperAdmin && ngo.approvalStatus === 'approved') {
-        const restrictedFields = ['registrationNumber', 'walletAddress', 'verificationDocuments'];
+         const restrictedFields = ['registrationNumber', 'verificationDocuments'];
         const hasRestrictedUpdates = restrictedFields.some(field => updates[field]);
         
         if (hasRestrictedUpdates) {
             throw new ApiError(403, "Cannot modify restricted fields after approval. Contact super admin.");
+        }
+        
+        if (updates.walletAddress) {
+            const currentWallet = ngo.walletAddress?.toLowerCase();
+            const incomingWallet = String(updates.walletAddress).toLowerCase();
+
+            if (currentWallet && currentWallet !== incomingWallet) {
+                throw new ApiError(403, "Wallet address cannot be changed after approval. Contact super admin.");
+            }
         }
     }
 

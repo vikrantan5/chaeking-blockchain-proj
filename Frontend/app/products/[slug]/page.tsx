@@ -37,13 +37,31 @@ export default function ProductDetailsPage() {
   };
 
 const handleDonate = async () => {
-    if (quantity <= 0 || quantity > product.stockQuantity) {
-      toast.error("Please enter a valid quantity");
+  const ngoWalletAddress =
+    product?.associatedNGO?.walletAddress ||
+    product?.associatedNGO?.registeredBy?.walletAddress;
+
+  const totalPrice = product.priceInCrypto * quantity;
+
+  if (quantity <= 0 || quantity > product.stockQuantity) {
+    toast.error("Please enter a valid quantity");
+    return;
+  }
+    
+   if (!ngoWalletAddress) {
+      toast.error("Product NGO wallet address not found");
       return;
     }
-    
-    if (!product?.associatedNGO?.walletAddress) {
-      toast.error("Product NGO wallet address not found");
+      if (!product?.associatedNGO?._id) {
+      toast.error("Associated NGO not found for this product");
+      return;
+    }
+
+    const accessToken = sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+    const userData = localStorage.getItem("user_data");
+    if (!accessToken || !userData || JSON.parse(userData).role !== "user") {
+      toast.error("Please login as user to donate");
+      router.push("/login");
       return;
     }
 
@@ -80,33 +98,30 @@ const handleDonate = async () => {
       // Send donation
       const tx = await contract.donateProduct(
         productIdBytes32,
-        product.associatedNGO.walletAddress,
+         ngoWalletAddress,
         { value: ethers.parseEther(totalPrice.toString()) }
       );
 
       toast.info("Transaction submitted. Waiting for confirmation...");
       const receipt = await tx.wait();
+       const receiptAny = receipt as any;
+      const txAny = tx as any;
+      const gasPrice = receiptAny?.gasPrice ?? receiptAny?.effectiveGasPrice ?? txAny?.gasPrice ?? 0n;
+      const gasUsed = receiptAny?.gasUsed ?? 0n;
+      const transactionFee = gasUsed * gasPrice;
 
       // Record in backend
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions/blockchain-donation`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            donationType: "product-donation",
-            amount: totalPrice,
+const saveResult = await apiClient.products.donate(product._id, {
+        ngoId: product.associatedNGO._id,
             txHash: receipt.hash,
-            gasPrice: receipt.gasPrice?.toString() || "0",
-            transactionFee: ((receipt.gasUsed || 0n) * (receipt.gasPrice || 0n)).toString(),
-            productId: product._id,
-            ngoId: product.associatedNGO._id,
-            cryptoType: "eth"
-          })
-        });
+           gasPrice: Number(gasPrice),
+        transactionFee: Number(transactionFee),
+        quantity,
+      });
+
+      if (!saveResult.success) {
+        toast.error(saveResult.message || "Donation confirmed on-chain but save failed");
+        return;
       }
 
       toast.success("Product donation successful! Thank you! 🎉");

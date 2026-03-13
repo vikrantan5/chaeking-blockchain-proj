@@ -110,7 +110,7 @@ export default function CasesPage() {
               return (
                 <div
                   key={caseItem._id}
-                  onClick={() => router.push(`/cases/${caseItem.slug}`)}
+                      onClick={() => router.push(`/cases/${caseItem.slug || caseItem._id}`)}
                   className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer overflow-hidden group"
                 >
                   {/* Case Image */}

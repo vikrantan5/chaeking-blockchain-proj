@@ -5,7 +5,7 @@ import { FundraisingCase } from "../models/fundraisingCase.model.js";
 import { NGO } from "../models/ngo.model.js";
 import { Transaction } from "../models/transaction.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-
+import mongoose from "mongoose";
 // Create a new fundraising case (Super Admin only)
 export const createCase = asyncHandler(async (req, res) => {
     const {
@@ -111,11 +111,22 @@ export const getAllCases = asyncHandler(async (req, res) => {
 // Get single case by ID or slug
 export const getCaseById = asyncHandler(async (req, res) => {
     const { id } = req.params;
+      const queryConditions = [{ slug: id }];
+    if (mongoose.Types.ObjectId.isValid(id)) {
+        queryConditions.push({ _id: id });
+    }
 
     const fundraisingCase = await FundraisingCase.findOne({
-        $or: [{ _id: id }, { slug: id }]
+         $or: queryConditions
     })
-        .populate('associatedNGO', 'ngoName address contactDetails walletAddress')
+        .populate({
+            path: 'associatedNGO',
+            select: 'ngoName address contactDetails walletAddress registeredBy',
+            populate: {
+                path: 'registeredBy',
+                select: 'walletAddress name email'
+            }
+        })
         .populate('createdBy', 'name email')
         .populate('releasedBy', 'name email');
 
@@ -128,12 +139,21 @@ export const getCaseById = asyncHandler(async (req, res) => {
         fundraisingCase: fundraisingCase._id,
         transactionType: 'case-donation'
     })
-        .populate('sender', 'name email')
+           .populate('sender', 'name email walletAddress')
         .sort({ createdAt: -1 })
         .limit(10);
 
+     const fundraisingCaseObj = fundraisingCase.toObject();
+    if (
+        fundraisingCaseObj?.associatedNGO &&
+        !fundraisingCaseObj.associatedNGO.walletAddress &&
+        fundraisingCaseObj.associatedNGO.registeredBy?.walletAddress
+    ) {
+        fundraisingCaseObj.associatedNGO.walletAddress = fundraisingCaseObj.associatedNGO.registeredBy.walletAddress;
+    }
+
     return res.status(200).json(
-        new ApiResponse(200, { case: fundraisingCase, recentDonations: donations }, "Case fetched successfully")
+         new ApiResponse(200, { case: fundraisingCaseObj, recentDonations: donations }, "Case fetched successfully")
     );
 });
 

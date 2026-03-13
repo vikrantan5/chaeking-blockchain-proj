@@ -46,6 +46,7 @@ interface NGO {
   registeredBy: {
     name: string;
     email: string;
+     walletAddress?: string;
   };
 }
 
@@ -83,12 +84,22 @@ export default function NGODetailPage() {
   };
 
   const handleDonate = async () => {
+      const ngoWalletAddress = ngo?.walletAddress || ngo?.registeredBy?.walletAddress;
+
     if (!donationAmount || parseFloat(donationAmount) <= 0) {
       toast.error("Please enter a valid donation amount");
       return;
     }
-      if (!ngo?.walletAddress) {
+      if (!ngoWalletAddress) {
       toast.error("NGO wallet address not found");
+      return;
+    }
+
+    const accessToken = sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+    const userData = localStorage.getItem("user_data");
+    if (!accessToken || !userData || JSON.parse(userData).role !== "user") {
+      toast.error("Please login as user to donate");
+      router.push("/login");
       return;
     }
 
@@ -121,32 +132,29 @@ export default function NGODetailPage() {
       toast.info("Please confirm the transaction in MetaMask...");
 
       // Send donation
-      const tx = await contract.donateEthToNGO(ngo.walletAddress, {
+       const tx = await contract.donateEthToNGO(ngoWalletAddress, {
         value: ethers.parseEther(donationAmount)
       });
 
       toast.info("Transaction submitted. Waiting for confirmation...");
       const receipt = await tx.wait();
+      const receiptAny = receipt as any;
+      const txAny = tx as any;
+      const gasPrice = receiptAny?.gasPrice ?? receiptAny?.effectiveGasPrice ?? txAny?.gasPrice ?? 0n;
+      const gasUsed = receiptAny?.gasUsed ?? 0n;
+      const transactionFee = gasUsed * gasPrice;
 
       // Record in backend
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions/blockchain-donation`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            donationType: "ngo-donation",
-            amount: donationAmount,
+             const saveResult = await apiClient.ngo.donate(ngo._id, {
+        amount: parseFloat(donationAmount),
             txHash: receipt.hash,
-            gasPrice: receipt.gasPrice?.toString() || "0",
-            transactionFee: (receipt.gasUsed * (receipt.gasPrice || 0n)).toString(),
-            ngoId: ngo._id,
-            cryptoType: "eth"
-          })
-        });
+            gasPrice: Number(gasPrice),
+        transactionFee: Number(transactionFee)
+      });
+
+      if (!saveResult.success) {
+        toast.error(saveResult.message || "Donation confirmed on-chain but save failed");
+        return;
       }
 
       toast.success("Donation successful! Thank you for your support! 🎉");
@@ -385,7 +393,7 @@ export default function NGODetailPage() {
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">NGO Wallet Address</p>
                 <p className="text-xs font-mono text-gray-800 break-all">
-                  {ngo.walletAddress}
+                    {ngo.walletAddress || ngo.registeredBy?.walletAddress || "Not set"}
                 </p>
               </div>
 

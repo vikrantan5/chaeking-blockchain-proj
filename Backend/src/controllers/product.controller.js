@@ -5,7 +5,7 @@ import { Product } from "../models/product.model.js";
 import { NGO } from "../models/ngo.model.js";
 import { Transaction } from "../models/transaction.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-
+import mongoose from "mongoose";
 // Create a new product (Super Admin only)
 export const createProduct = asyncHandler(async (req, res) => {
     const {
@@ -104,19 +104,40 @@ export const getAllProducts = asyncHandler(async (req, res) => {
 // Get single product by ID or slug
 export const getProductById = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    const queryConditions = [{ slug: id }];
+    if (mongoose.Types.ObjectId.isValid(id)) {
+        queryConditions.push({ _id: id });
+    }
 
     const product = await Product.findOne({
-        $or: [{ _id: id }, { slug: id }]
+        $or: queryConditions
     })
-        .populate('associatedNGO', 'ngoName address contactDetails walletAddress')
+       .populate({
+            path: 'associatedNGO',
+            select: 'ngoName address contactDetails walletAddress registeredBy',
+            populate: {
+                path: 'registeredBy',
+                select: 'walletAddress name email'
+            }
+        })
         .populate('createdBy', 'name email');
 
     if (!product) {
         throw new ApiError(404, "Product not found");
     }
 
+    const productObj = product.toObject();
+    if (
+        productObj?.associatedNGO &&
+        !productObj.associatedNGO.walletAddress &&
+        productObj.associatedNGO.registeredBy?.walletAddress
+    ) {
+        productObj.associatedNGO.walletAddress = productObj.associatedNGO.registeredBy.walletAddress;
+    }
+
+
     return res.status(200).json(
-        new ApiResponse(200, product, "Product fetched successfully")
+        new ApiResponse(200, productObj, "Product fetched successfully")
     );
 });
 
