@@ -30,6 +30,8 @@ interface NGOData {
   contactDetails?: {
     email: string;
   };
+   photoGallery?: string[];
+  coverImage?: string;
 }
 
 interface DashboardStats {
@@ -361,6 +363,37 @@ export default function NGOAdminDashboard() {
               </p>
             )}
           </div>
+           {/* Photo Gallery Display */}
+          {ngoData.photoGallery && ngoData.photoGallery.length > 0 && (
+            <div className="mt-6">
+              <h4 className="mb-3 text-sm font-semibold text-gray-700">Uploaded Photos</h4>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {ngoData.photoGallery.map((photoUrl: string, index: number) => (
+                  <div key={index} className="relative aspect-square overflow-hidden rounded-lg border border-gray-200">
+                    <img
+                      src={photoUrl}
+                      alt={`NGO Photo ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cover Image Display */}
+          {ngoData.coverImage && (
+            <div className="mt-6">
+              <h4 className="mb-3 text-sm font-semibold text-gray-700">Cover Image</h4>
+              <div className="relative aspect-video overflow-hidden rounded-lg border border-gray-200">
+                <img
+                  src={ngoData.coverImage}
+                  alt="NGO Cover"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}

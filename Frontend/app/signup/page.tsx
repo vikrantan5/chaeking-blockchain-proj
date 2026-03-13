@@ -629,9 +629,12 @@ const validateName = (name: string) =>
                     type="text"
                     value={ngoName}
                     onChange={(e) => setNgoName(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+                      errors.ngoName ? "border-red-500" : "border-gray-300"
+                    }`}
                     placeholder="Enter NGO name"
                   />
+                   {errors.ngoName && <p className="text-red-500 text-sm mt-1">{errors.ngoName}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Registration Number</label>
@@ -639,9 +642,12 @@ const validateName = (name: string) =>
                     type="text"
                     value={registrationNumber}
                     onChange={(e) => setRegistrationNumber(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+                      errors.registrationNumber ? "border-red-500" : "border-gray-300"
+                    }`}
                     placeholder="Registration number"
                   />
+                  {errors.registrationNumber && <p className="text-red-500 text-sm mt-1">{errors.registrationNumber}</p>}
                 </div>
               </div>
 
@@ -650,10 +656,13 @@ const validateName = (name: string) =>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+                    errors.description ? "border-red-500" : "border-gray-300"
+                  }`}
                   rows={3}
                   placeholder="Brief description of your NGO"
                 />
+                {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
               </div>
 
               <div>
@@ -661,10 +670,13 @@ const validateName = (name: string) =>
                 <textarea
                   value={mission}
                   onChange={(e) => setMission(e.target.value)}
-                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+                    errors.mission ? "border-red-500" : "border-gray-300"
+                  }`}
                   rows={3}
                   placeholder="Your NGO's mission statement"
                 />
+                 {errors.mission && <p className="text-red-500 text-sm mt-1">{errors.mission}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -721,10 +733,13 @@ const validateName = (name: string) =>
                     type="tel"
                     value={ngoPhone}
                     onChange={(e) => setNgoPhone(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+                      errors.ngoPhone ? "border-red-500" : "border-gray-300"
+                    }`}
                     placeholder="Contact number"
                     maxLength={10}
                   />
+                  {errors.ngoPhone && <p className="text-red-500 text-sm mt-1">{errors.ngoPhone}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">NGO Email</label>
@@ -732,9 +747,12 @@ const validateName = (name: string) =>
                     type="email"
                     value={ngoEmail}
                     onChange={(e) => setNgoEmail(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${
+                      errors.ngoEmail ? "border-red-500" : "border-gray-300"
+                    }`}
                     placeholder="NGO email"
                   />
+                  {errors.ngoEmail && <p className="text-red-500 text-sm mt-1">{errors.ngoEmail}</p>}
                 </div>
               </div>
 

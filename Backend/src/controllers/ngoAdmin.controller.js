@@ -11,6 +11,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { storeWalletAddressUtility } from "../utils/storeWalletAddress.js";
 
 // NGO Owner Registration (User + NGO in one step)
+// NGO Owner Registration (User + NGO in one step)
 export const registerNGOOwner = asyncHandler(async (req, res) => {
     const {
         // User details
@@ -35,18 +36,18 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
     }
 
     // Validate NGO fields
-  if (!ngoName || !registrationNumber || !address || !description || !mission) {
+    if (!ngoName || !registrationNumber || !address || !description || !mission) {
         throw new ApiError(400, "All NGO fields are required");
     }
 
-    // Validate email format
-    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
+    // Validate email format - FIXED REGEX
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         throw new ApiError(400, "Invalid email format");
     }
 
     // Validation - phone number length
-    if (phone.length != 10) {
+    if (!phone || phone.toString().length !== 10) {
         throw new ApiError(400, "Phone number should be of 10 digits");
     }
 
@@ -69,40 +70,68 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
     let verificationDocUrls = [];
 
     if (req.files) {
-        if (req.files.coverImage && req.files.coverImage[0]) {
-            const coverImageUpload = await uploadOnCloudinary(req.files.coverImage[0].path);
-            coverImageUrl = coverImageUpload?.url || "";
-        }
-
-        if (req.files.verificationDocuments) {
-            for (const file of req.files.verificationDocuments) {
-                const docUpload = await uploadOnCloudinary(file.path);
-                if (docUpload?.url) {
-                    verificationDocUrls.push(docUpload.url);
+        try {
+            // Upload cover image
+            if (req.files.coverImage && req.files.coverImage[0]) {
+                const coverImageUpload = await uploadOnCloudinary(req.files.coverImage[0].path);
+                if (coverImageUpload && coverImageUpload.url) {
+                    coverImageUrl = coverImageUpload.url;
+                    console.log(`✅ Cover image uploaded: ${coverImageUrl}`);
                 }
             }
+
+            // Upload verification documents
+            if (req.files.verificationDocuments && req.files.verificationDocuments.length > 0) {
+                for (const file of req.files.verificationDocuments) {
+                    try {
+                        const docUpload = await uploadOnCloudinary(file.path);
+                        if (docUpload?.url) {
+                            verificationDocUrls.push(docUpload.url);
+                            console.log(`✅ Document uploaded: ${docUpload.url}`);
+                        }
+                    } catch (docError) {
+                        console.error(`❌ Failed to upload document: ${file.originalname}`, docError);
+                        // Continue with next document
+                    }
+                }
+            }
+        } catch (fileUploadError) {
+            console.error("❌ File upload error:", fileUploadError);
+            // Continue registration even if file upload fails
+            // Don't throw error here
         }
     }
 
     // Parse JSON fields
     let parsedAddress;
     let parsedContactDetails;
-    let parsedFocusAreas;
+    let parsedFocusAreas = [];
 
     try {
         parsedAddress = typeof address === 'string' ? JSON.parse(address) : address;
         parsedContactDetails = typeof contactDetails === 'string' ? JSON.parse(contactDetails) : contactDetails;
-        parsedFocusAreas = focusAreas ? (typeof focusAreas === 'string' ? JSON.parse(focusAreas) : focusAreas) : [];
+        
+        if (focusAreas) {
+            parsedFocusAreas = typeof focusAreas === 'string' ? JSON.parse(focusAreas) : focusAreas;
+        }
+        
+        // Ensure parsedFocusAreas is an array
+        if (!Array.isArray(parsedFocusAreas)) {
+            parsedFocusAreas = [];
+        }
     } catch (error) {
-        throw new ApiError(400, "Invalid NGO data format");
+        console.error("❌ Error parsing NGO data:", error);
+        throw new ApiError(400, "Invalid NGO data format. Please check your JSON fields.");
     }
 
+    // Validate address fields
     if (!parsedAddress?.street || !parsedAddress?.city || !parsedAddress?.state || !parsedAddress?.pincode) {
-        throw new ApiError(400, "Complete NGO address is required");
+        throw new ApiError(400, "Complete NGO address with street, city, state, and pincode is required");
     }
 
+    // Validate contact details
     if (!parsedContactDetails?.phone || !parsedContactDetails?.email) {
-        throw new ApiError(400, "NGO contact details are required");
+        throw new ApiError(400, "NGO contact details with phone and email are required");
     }
 
     // Create user with ngoAdmin role and pending status
@@ -115,8 +144,8 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
         loginType: "email",
         status: "pending",
         ngoName: ngoName,
-        ngoLocation: `${parsedAddress.city}, ${parsedAddress.state}`,
-         walletAddress: walletAddress || null
+        ngoLocation: `${parsedAddress.city}, ${parsedAddress.state}`.replace(/^, |, $/g, ''),
+        walletAddress: walletAddress || null
     });
 
     if (!user) {
@@ -132,7 +161,7 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
         description,
         mission,
         focusAreas: parsedFocusAreas,
-         walletAddress: walletAddress || null,
+        walletAddress: walletAddress || null,
         coverImage: coverImageUrl,
         verificationDocuments: verificationDocUrls,
         registeredBy: user._id,
@@ -148,31 +177,43 @@ export const registerNGOOwner = asyncHandler(async (req, res) => {
     // Link NGO to User
     user.ngoId = ngo._id;
     user.ngoName = ngo.ngoName;
-    user.ngoLocation = `${parsedAddress.city}, ${parsedAddress.state}`;
+    user.ngoLocation = `${parsedAddress.city}, ${parsedAddress.state}`.replace(/^, |, $/g, '');
+    await user.save({ validateBeforeSave: false });
 
-
-   // Generate 6-digit numeric OTP for email verification
+    // Generate 6-digit numeric OTP for email verification
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetOtp = otp;
     user.resetOtpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
     user.lastOtpSentAt = Date.now();
     await user.save({ validateBeforeSave: false });
 
-    const otpEmail = emailForOtpVerification(user.email, otp, "emailVerification");
+    // Send OTP email
     try {
-        await sendEmail(user.email, "Email Verification OTP", otpEmail);
+        const otpEmail = emailForOtpVerification(user.email, otp, "emailVerification");
+        
+        // Handle if email template returns object or string
+        const emailHtml = typeof otpEmail === 'object' ? otpEmail.html : otpEmail;
+        const emailSubject = typeof otpEmail === 'object' ? otpEmail.subject : "Email Verification OTP";
+        
+        await sendEmail(user.email, emailSubject, emailHtml);
+        console.log(`✅ OTP email sent to ${user.email}`);
     } catch (error) {
-        throw new ApiError(500, "Something went wrong while sending email");
+        console.error("❌ Failed to send OTP email:", error);
+        // Don't throw error here, registration still succeeded
     }
 
     // Remove password from response
-    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+    const createdUser = await User.findById(user._id).select("-password -refreshToken -resetOtp -resetOtpExpires");
 
     return res.status(201).json(
         new ApiResponse(
             201,
-            { user: createdUser, ngo },
-            "NGO Owner registered successfully. Please verify your email with the OTP sent. Your NGO is pending admin approval."
+            { 
+                user: createdUser, 
+                ngo,
+                message: "Please verify your email with the OTP sent to your email address."
+            },
+            "NGO Owner registered successfully. Your NGO is pending admin approval."
         )
     );
 });
