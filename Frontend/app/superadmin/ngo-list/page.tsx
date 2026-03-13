@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { apiClient } from "../../utils/api";
+import { ArrowLeft } from "lucide-react";
 
 export default function NGOListPage() {
   const router = useRouter();
@@ -38,6 +39,14 @@ const loadNGOs = async () => {
 
   return (
     <div className="space-y-6" data-testid="ngo-list-page">
+        <button
+        onClick={() => router.push("/superadmin/dashboard")}
+        className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+        data-testid="back-to-dashboard"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        Back to Dashboard
+      </button>
       <div>
         <h1 className="text-3xl font-bold text-gray-900" data-testid="ngo-list-title">All Registered NGOs</h1>
         <p className="text-gray-600 mt-1" data-testid="ngo-list-subtitle">Monitor approved, pending, and rejected NGO profiles.</p>

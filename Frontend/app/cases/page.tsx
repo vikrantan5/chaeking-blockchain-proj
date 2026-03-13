@@ -115,8 +115,8 @@ export default function CasesPage() {
                 >
                   {/* Case Image */}
                   <div className="h-48 bg-gradient-to-r from-purple-400 to-pink-400 relative overflow-hidden">
-                    {caseItem.images && caseItem.images[0] ? (
-                      <img src={caseItem.images[0]} alt={caseItem.caseTitle} className="w-full h-full object-cover" />
+                       {caseItem.images && caseItem.images.length > 0 ? (
+                      <img src={caseItem.images[0]} alt={caseItem.caseTitle} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
                     ) : (
                       <div className="flex items-center justify-center h-full">
                         <Heart className="w-20 h-20 text-white opacity-30" />
@@ -125,6 +125,12 @@ export default function CasesPage() {
                     <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-xs font-medium text-purple-600 capitalize">
                       {caseItem.caseType.replace("-", " ")}
                     </div>
+                     {/* Photo count badge */}
+                    {caseItem.images && caseItem.images.length > 1 && (
+                      <div className="absolute top-4 left-4 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
+                        {caseItem.images.length} {caseItem.images.length === 1 ? 'photo' : 'photos'}
+                      </div>
+                    )}
                   </div>
 
                   {/* Case Details */}

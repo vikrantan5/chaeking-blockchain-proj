@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Package, Plus, Trash2, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { apiClient } from "../../utils/api";
+
 
 const categories = ["food", "medicine", "education", "clothing", "shelter", "emergency-kit", "other"];
 
@@ -154,6 +155,14 @@ export default function SuperAdminProductsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6" data-testid="superadmin-products-page">
       <div className="max-w-7xl mx-auto space-y-8">
+         <button
+          onClick={() => router.push("/superadmin/dashboard")}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+          data-testid="back-to-dashboard"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Dashboard
+        </button>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-4xl font-bold text-gray-800" data-testid="superadmin-products-title">Product Management</h1>

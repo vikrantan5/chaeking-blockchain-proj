@@ -12,6 +12,7 @@ interface NGO {
   slug: string;
   description: string;
   coverImage: string;
+   photoGallery?: string[];
   address: {
     city: string;
     state: string;
@@ -169,14 +170,21 @@ export default function NGOsPage() {
                 {/* IMAGE */}
                 <div className="h-48 relative overflow-hidden">
 
-                  {ngo.coverImage ? (
+                  {ngo.coverImage || (ngo.photoGallery && ngo.photoGallery.length > 0) ? (
                     <img
-                      src={ngo.coverImage}
+                        src={ngo.coverImage || ngo.photoGallery[0]}
+                      alt={ngo.ngoName}
                       className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full bg-gradient-to-r from-blue-500 to-indigo-600">
                       <Building2 className="w-20 h-20 text-white opacity-60" />
+                    </div>
+                  )}
+                   {/* Photo count badge */}
+                  {ngo.photoGallery && ngo.photoGallery.length > 0 && (
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
+                      {ngo.photoGallery.length} {ngo.photoGallery.length === 1 ? 'photo' : 'photos'}
                     </div>
                   )}
 

@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Plus, Calendar, Target, TrendingUp, Edit, Eye, DollarSign, Users, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Heart, Plus, Calendar, Target, TrendingUp, Edit, Eye, DollarSign, Users, CheckCircle, Clock, XCircle, ArrowLeft } from "lucide-react";
+
 import { toast } from "react-toastify";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api/v1";
@@ -46,7 +47,7 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("accessToken");
+      const token = sessionStorage.getItem("accessToken");
       
       // Fetch all cases
          const casesRes = await fetch(`${API_URL}/cases`, {
@@ -93,7 +94,7 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
     e.preventDefault();
     
     try {
-      const token = localStorage.getItem("accessToken");
+         const token = sessionStorage.getItem("accessToken");
       
       const beneficiaryDetails = {
         name: formData.beneficiaryName,
@@ -160,7 +161,7 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
     e.preventDefault();
     
     try {
-      const token = localStorage.getItem("accessToken");
+       const token = sessionStorage.getItem("accessToken");
 
           const submitData = new FormData();
       submitData.append("targetAmount", formData.targetAmount);
@@ -236,6 +237,14 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6" data-testid="superadmin-cases-page">
       <div className="container mx-auto">
         {/* Header */}
+          <button
+            onClick={() => router.push("/superadmin/dashboard")}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition-colors"
+            data-testid="back-to-dashboard"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Dashboard
+          </button>
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -327,6 +336,26 @@ const [caseImages, setCaseImages] = useState<FileList | null>(null);
                       </div>
                       
                       <p className="text-gray-600 mb-3">{caseItem.description}</p>
+                         {/* Case Images Preview */}
+                      {caseItem.images && caseItem.images.length > 0 && (
+                        <div className="mb-4">
+                          <div className="flex gap-2 overflow-x-auto pb-2">
+                            {caseItem.images.slice(0, 3).map((img: string, idx: number) => (
+                              <img 
+                                key={idx}
+                                src={img} 
+                                alt={`Case image ${idx + 1}`}
+                                className="h-20 w-20 object-cover rounded-lg border border-gray-200"
+                              />
+                            ))}
+                            {caseItem.images.length > 3 && (
+                              <div className="h-20 w-20 rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-600 text-sm font-medium">
+                                +{caseItem.images.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="grid md:grid-cols-2 gap-4 mb-4">
                         <div>
