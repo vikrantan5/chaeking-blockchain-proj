@@ -6,6 +6,24 @@ import { NGO } from "../models/ngo.model.js";
 import { Transaction } from "../models/transaction.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import mongoose from "mongoose";
+
+
+
+const getNormalizedApprovalStatus = (ngo) => {
+    if (!ngo) return 'pending';
+    if (ngo.approvalStatus && ['approved', 'pending', 'rejected'].includes(ngo.approvalStatus)) {
+        return ngo.approvalStatus;
+    }
+    if (ngo.status && ['approved', 'pending', 'rejected'].includes(ngo.status)) {
+        return ngo.status;
+    }
+    if (ngo.approved === true) return 'approved';
+    if (ngo.approved === false) return 'pending';
+    return 'pending';
+};
+
+const resolveNgoWalletAddress = (ngo) => ngo?.walletAddress || ngo?.registeredBy?.walletAddress || null;
+
 // Create a new fundraising case (Super Admin only)
 export const createCase = asyncHandler(async (req, res) => {
     const {
@@ -24,12 +42,23 @@ export const createCase = asyncHandler(async (req, res) => {
     }
 
     // Verify NGO exists and is approved
-    const ngo = await NGO.findById(associatedNGO);
+   const ngo = await NGO.findById(associatedNGO).populate('registeredBy', 'walletAddress');
     if (!ngo) {
+    
         throw new ApiError(404, "NGO not found");
     }
-    if (ngo.approvalStatus !== 'approved') {
+   if (getNormalizedApprovalStatus(ngo) !== 'approved') {
         throw new ApiError(400, "NGO must be approved before creating cases");
+    }
+
+     const ngoWalletAddress = resolveNgoWalletAddress(ngo);
+    if (!ngoWalletAddress) {
+        throw new ApiError(400, "Selected NGO has no wallet address. Ask NGO to connect wallet first.");
+    }
+
+    if (!ngo.walletAddress && ngoWalletAddress) {
+        ngo.walletAddress = ngoWalletAddress;
+        await ngo.save({ validateBeforeSave: false });
     }
 
     // Handle file uploads
@@ -99,12 +128,31 @@ export const getAllCases = asyncHandler(async (req, res) => {
     }
 
     const cases = await FundraisingCase.find(filter)
-        .populate('associatedNGO', 'ngoName address.city walletAddress')
+        .populate({
+            path: 'associatedNGO',
+            select: 'ngoName address.city walletAddress registeredBy',
+            populate: {
+                path: 'registeredBy',
+                select: 'walletAddress'
+            }
+        })
         .populate('createdBy', 'name email')
         .sort({ createdAt: -1 });
 
+
+          const normalizedCases = cases.map((caseItem) => {
+        const caseObj = caseItem.toObject();
+        if (caseObj.associatedNGO) {
+            caseObj.associatedNGO.walletAddress =
+                caseObj.associatedNGO.walletAddress ||
+                caseObj.associatedNGO?.registeredBy?.walletAddress ||
+                null;
+        }
+        return caseObj;
+    });
+
     return res.status(200).json(
-        new ApiResponse(200, cases, "Fundraising cases fetched successfully")
+        new ApiResponse(200, normalizedCases, "Fundraising cases fetched successfully")
     );
 });
 
@@ -163,6 +211,7 @@ export const updateCase = asyncHandler(async (req, res) => {
     const updates = req.body;
 
     const fundraisingCase = await FundraisingCase.findById(caseId);
+     const associatedNgo = await NGO.findById(fundraisingCase.associatedNGO).select('registeredBy');
     if (!fundraisingCase) {
         throw new ApiError(404, "Case not found");
     }
@@ -222,7 +271,7 @@ export const recordCaseDonation = asyncHandler(async (req, res) => {
     const transaction = await Transaction.create({
         transactionType: 'case-donation',
         sender: req.user._id,
-        receiver: fundraisingCase.associatedNGO,
+        receiver: associatedNgo?.registeredBy || fundraisingCase.associatedNGO,
         amount: parseFloat(amount),
         txHash,
         status: 'confirmed',

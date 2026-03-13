@@ -10,11 +10,66 @@ import { Transaction } from "../models/transaction.model.js";
 import mongoose from "mongoose";
 import { registerNGOOnBlockchain } from "../utils/blockchain.js";
 
+// Helper functions for NGO status normalization
+const getNormalizedApprovalStatus = (ngo) => {
+    if (ngo?.approvalStatus && ['approved', 'pending', 'rejected'].includes(ngo.approvalStatus)) {
+        return ngo.approvalStatus;
+    }
 
+    if (ngo?.status && ['approved', 'pending', 'rejected'].includes(ngo.status)) {
+        return ngo.status;
+    }
 
+    if (ngo?.approved === true) return 'approved';
+    if (ngo?.approved === false) return 'pending';
 
+    return 'pending';
+};
 
-// / Donate to NGO (authenticated user)
+const isNgoApproved = (ngo) => getNormalizedApprovalStatus(ngo) === 'approved';
+
+const resolveNgoWalletAddress = (ngo) => {
+    if (!ngo) return null;
+    return ngo.walletAddress || ngo?.registeredBy?.walletAddress || null;
+};
+
+const getStatusFilter = (status) => {
+    if (!status) return null;
+
+    if (status === 'approved') {
+        return {
+            $or: [
+                { approvalStatus: 'approved' },
+                { status: 'approved' },
+                { approved: true }
+            ]
+        };
+    }
+
+    if (status === 'rejected') {
+        return {
+            $or: [
+                { approvalStatus: 'rejected' },
+                { status: 'rejected' }
+            ]
+        };
+    }
+
+    if (status === 'pending') {
+        return {
+            $or: [
+                { approvalStatus: 'pending' },
+                { status: 'pending' },
+                { approved: false },
+                { approvalStatus: { $exists: false } }
+            ]
+        };
+    }
+
+    return { approvalStatus: status };
+};
+
+// Donate to NGO (authenticated user)
 export const donateToNGO = asyncHandler(async (req, res) => {
     const { ngoId } = req.params;
     const { amount, txHash, gasPrice = 0, transactionFee = 0 } = req.body;
@@ -33,19 +88,22 @@ export const donateToNGO = asyncHandler(async (req, res) => {
         throw new ApiError(404, "NGO not found");
     }
 
-    if (ngo.approvalStatus !== "approved") {
+    // Check if NGO is approved
+    if (!isNgoApproved(ngo)) {
         throw new ApiError(400, "This NGO is not approved for donations yet");
     }
 
+    // Check for duplicate transaction
     const duplicateTx = await Transaction.findOne({ txHash });
     if (duplicateTx) {
         throw new ApiError(400, "Transaction already recorded");
     }
 
+    // Create transaction record
     const transaction = await Transaction.create({
         transactionType: "ngo-donation",
         sender: req.user._id,
-        receiver: ngo.registeredBy,
+        receiver: ngo.registeredBy?._id || ngo.registeredBy,
         amount: parsedAmount,
         txHash,
         status: "confirmed",
@@ -56,6 +114,7 @@ export const donateToNGO = asyncHandler(async (req, res) => {
         cryptoType: "matic"
     });
 
+    // Update NGO total donations
     await NGO.findByIdAndUpdate(ngo._id, {
         $inc: { totalDonationsReceived: parsedAmount }
     });
@@ -89,6 +148,7 @@ export const getNGODonations = asyncHandler(async (req, res) => {
         new ApiResponse(200, { ngo, donations: donationList }, "NGO donations fetched successfully")
     );
 });
+
 // Helper function to safely parse JSON
 const safeJSONParse = (data, fieldName) => {
     if (!data) return null;
@@ -328,11 +388,11 @@ export const getAllNGOs = asyncHandler(async (req, res) => {
     // Build filter
     const filter = {};
     
-    // Status filter - show only approved to non-super-admins
-    if (status) {
-        filter.approvalStatus = status;
-    } else if (!req.user || req.user.role !== 'superAdmin') {
-        filter.approvalStatus = 'approved';
+    // Status filter - keep compatibility with legacy NGO docs
+    const requestedStatus = status || (!req.user || req.user.role !== 'superAdmin' ? 'approved' : null);
+    const statusFilter = getStatusFilter(requestedStatus);
+    if (statusFilter) {
+        Object.assign(filter, statusFilter);
     }
 
     // Focus area filter
@@ -357,7 +417,7 @@ export const getAllNGOs = asyncHandler(async (req, res) => {
     // Execute queries
     const [ngos, totalCount] = await Promise.all([
         NGO.find(filter)
-            .populate('registeredBy', 'name email')
+ .populate('registeredBy', 'name email walletAddress')
             .populate('approvedBy', 'name email')
             .sort(sortOptions)
             .skip(skip)
@@ -366,9 +426,21 @@ export const getAllNGOs = asyncHandler(async (req, res) => {
         NGO.countDocuments(filter)
     ]);
 
+    const normalizedNgos = ngos.map((ngo) => {
+        const approvalStatus = getNormalizedApprovalStatus(ngo);
+        const walletAddress = resolveNgoWalletAddress(ngo);
+        return {
+            ...ngo,
+            approvalStatus,
+            status: approvalStatus,
+            approved: approvalStatus === 'approved',
+            walletAddress
+        };
+    });
+
     return res.status(200).json(
         new ApiResponse(200, {
-            ngos,
+            ngos: normalizedNgos,
             pagination: {
                 currentPage: pageNum,
                 totalPages: Math.ceil(totalCount / limitNum),
@@ -400,18 +472,24 @@ export const getNGOById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "NGO not found");
     }
 
+    // Normalize approval status
+    const normalizedApprovalStatus = getNormalizedApprovalStatus(ngo);
+    
     // Check access permissions
     const isOwner = req.user && ngo.registeredBy && 
         ngo.registeredBy._id.toString() === req.user._id.toString();
     const isSuperAdmin = req.user?.role === 'superAdmin';
 
     // If NGO is not approved, only owner or super admin can view
-    if (ngo.approvalStatus !== 'approved' && !isOwner && !isSuperAdmin) {
+    if (normalizedApprovalStatus !== 'approved' && !isOwner && !isSuperAdmin) {
         throw new ApiError(403, "This NGO profile is not publicly available yet");
     }
-      if (!ngo.walletAddress && ngo.registeredBy?.walletAddress) {
-        ngo.walletAddress = ngo.registeredBy.walletAddress;
-    }
+
+    // Add normalized fields
+    ngo.approvalStatus = normalizedApprovalStatus;
+    ngo.status = normalizedApprovalStatus;
+    ngo.approved = normalizedApprovalStatus === 'approved';
+    ngo.walletAddress = resolveNgoWalletAddress(ngo);
 
     return res.status(200).json(
         new ApiResponse(200, ngo, "NGO fetched successfully")
@@ -428,30 +506,28 @@ export const approveNGO = asyncHandler(async (req, res) => {
         throw new ApiError(404, "NGO not found");
     }
 
-    if (ngo.approvalStatus === 'approved') {
+    // Check if already approved using helper
+    if (isNgoApproved(ngo)) {
         throw new ApiError(400, "NGO is already approved");
     }
 
-
-
- // Update user role and status to allow dashboard access
+    // Update user role and status to allow dashboard access
     const user = await User.findByIdAndUpdate(
         ngo.registeredBy, 
         {
-        role: 'ngoAdmin',
-           isVerified: true,
-        status: 'active', // Set status to active so NGO admin can login
-        ngoId: ngo._id, // Link NGO to user
-        ngoName: ngo.ngoName,
-        ngoLocation: `${ngo.address.city}, ${ngo.address.state}`
-     },
+            role: 'ngoAdmin',
+            isVerified: true,
+            status: 'active', // Set status to active so NGO admin can login
+            ngoId: ngo._id, // Link NGO to user
+            ngoName: ngo.ngoName,
+            ngoLocation: `${ngo.address.city}, ${ngo.address.state}`
+        },
         { new: true } // Return updated document
     );
 
-    
     if (!ngo.walletAddress && user?.walletAddress) {
         ngo.walletAddress = user.walletAddress;
-          }
+    }
 
     // Ensure we have a wallet address for blockchain registration
     const walletToRegister = ngo.walletAddress || user?.walletAddress;
@@ -472,6 +548,8 @@ export const approveNGO = asyncHandler(async (req, res) => {
 
     // Now update the NGO status in database
     ngo.approvalStatus = 'approved';
+    ngo.status = 'approved';
+    ngo.approved = true;
     ngo.approvedBy = req.user._id;
     ngo.approvalDate = new Date();
     ngo.approvalRemarks = remarks || "";
@@ -479,8 +557,8 @@ export const approveNGO = asyncHandler(async (req, res) => {
     ngo.walletAddress = walletToRegister; // Ensure wallet is saved
     
     await ngo.save();
+
     // Send approval email notification
-    
     if (user && user.email) {
         try {
             const approvalEmailContent = `
@@ -541,8 +619,9 @@ export const approveNGO = asyncHandler(async (req, res) => {
             // Don't throw error, approval should still succeed even if email fails
         }
     }
+
     return res.status(200).json(
-       new ApiResponse(200, ngo, "NGO approved successfully and notification sent")
+        new ApiResponse(200, ngo, "NGO approved successfully and notification sent")
     );
 });
 
@@ -560,11 +639,14 @@ export const rejectNGO = asyncHandler(async (req, res) => {
         throw new ApiError(404, "NGO not found");
     }
 
-    if (ngo.approvalStatus === 'rejected') {
+    // Check if already rejected using helper
+    if (getNormalizedApprovalStatus(ngo) === 'rejected') {
         throw new ApiError(400, "NGO is already rejected");
     }
 
     ngo.approvalStatus = 'rejected';
+    ngo.status = 'rejected';
+    ngo.approved = false;
     ngo.rejectionReason = reason;
     ngo.approvedBy = req.user._id;
     ngo.approvalDate = new Date();
@@ -595,8 +677,8 @@ export const updateNGO = asyncHandler(async (req, res) => {
     }
 
     // If not super admin and NGO is approved, restrict certain updates
-    if (!isSuperAdmin && ngo.approvalStatus === 'approved') {
-         const restrictedFields = ['registrationNumber', 'verificationDocuments'];
+    if (!isSuperAdmin && isNgoApproved(ngo)) {
+        const restrictedFields = ['registrationNumber', 'verificationDocuments'];
         const hasRestrictedUpdates = restrictedFields.some(field => updates[field]);
         
         if (hasRestrictedUpdates) {
@@ -709,7 +791,7 @@ export const getNGODashboard = asyncHandler(async (req, res) => {
             { 
                 $match: { 
                     ngo: ngo._id, 
-                    transactionType: { $in: ['transfer', 'case-donation', 'product-donation'] } 
+                    transactionType: { $in: ['ngo-donation', 'case-donation', 'product-donation'] } 
                 } 
             },
             { $group: { _id: null, total: { $sum: "$amount" } } }
@@ -734,7 +816,7 @@ export const getNGODashboard = asyncHandler(async (req, res) => {
         Transaction.find({ ngo: ngo._id })
             .sort({ createdAt: -1 })
             .limit(5)
-            .populate('fromUser', 'name email')
+            .populate('sender', 'name email')
             .lean(),
         
         // Recent 5 fundraising cases
@@ -748,7 +830,7 @@ export const getNGODashboard = asyncHandler(async (req, res) => {
         ngo: {
             _id: ngo._id,
             ngoName: ngo.ngoName,
-             slug: ngo.slug,
+            slug: ngo.slug,
             registrationNumber: ngo.registrationNumber,
             approvalStatus: ngo.approvalStatus,
             coverImage: ngo.coverImage,
