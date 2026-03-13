@@ -498,6 +498,88 @@ const recordBlockchainDonation = asyncHandler(async (req, res) => {
 });
 
 
+// Get user dashboard statistics (all donation types)
+const getUserDashboardStats = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    if (!userId) {
+        throw new ApiError(400, "User ID is missing");
+    }
+
+    try {
+        // Get all transactions by user
+        const transactions = await Transaction.find({
+            sender: userId,
+            status: "confirmed",
+            transactionType: { $in: ["ngo-donation", "case-donation", "product-donation"] }
+        });
+
+        // Calculate stats
+        const totalDonated = transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+        const caseDonations = transactions.filter(tx => tx.transactionType === "case-donation").length;
+        const productDonations = transactions.filter(tx => tx.transactionType === "product-donation").length;
+        const ngoDonations = transactions.filter(tx => tx.transactionType === "ngo-donation").length;
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    totalDonated,
+                    caseDonations,
+                    productDonations,
+                    ngoDonations,
+                    totalTransactions: transactions.length
+                },
+                "Dashboard statistics fetched successfully"
+            )
+        );
+    } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+        throw new ApiError(500, "Failed to fetch dashboard statistics");
+    }
+});
+
+// Get complete payment history for user (all donation types with details)
+const getUserPaymentHistory = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    if (!userId) {
+        throw new ApiError(400, "User ID is missing");
+    }
+
+    try {
+        const transactions = await Transaction.find({
+            sender: userId,
+            transactionType: { $in: ["ngo-donation", "case-donation", "product-donation"] }
+        })
+            .populate({
+                path: "ngo",
+                select: "ngoName address walletAddress"
+            })
+            .populate({
+                path: "fundraisingCase",
+                select: "title description targetAmount"
+            })
+            .populate({
+                path: "product",
+                select: "productName description priceInCrypto"
+            })
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                transactions,
+                "Payment history fetched successfully"
+            )
+        );
+    } catch (err) {
+        console.error("Error fetching payment history:", err);
+        throw new ApiError(500, "Failed to fetch payment history");
+    }
+});
+
+
 export {
     donateToTemple,
     donationHistory,
@@ -510,5 +592,7 @@ export {
     getUserTotalDonations,
     getUserMonthlyDonation,
     getTransactionByTxHash,
-    recordBlockchainDonation
+    recordBlockchainDonation,
+    getUserDashboardStats,
+    getUserPaymentHistory
 }

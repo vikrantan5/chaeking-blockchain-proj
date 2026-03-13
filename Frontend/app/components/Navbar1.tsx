@@ -282,7 +282,7 @@ export default function Navbar() {
                     </button>
                     <LogoutButton
                       logoutUrl="http://localhost:5050/api/v1/superAdmin/logout-superAdmin"
-                      redirectTo="/superadminlogin"
+                      redirectTo="/login"
                       onLogoutClick={() => setShowUserDropdown(false)} // close dropdown immediately on click
                     >
                       <div className="w-full flex items-center space-x-3 px-3 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">

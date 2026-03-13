@@ -1,4 +1,5 @@
 import { User } from "../models/user.model.js";
+import { Transaction } from "../models/transaction.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -42,7 +43,54 @@ const countNGOAdmins = asyncHandler(async (req, res) => {
     }
 });
 
+
+// Get product sales history for superadmin
+const getProductSalesHistory = asyncHandler(async (req, res) => {
+    try {
+        const productSales = await Transaction.find({
+            transactionType: "product-donation",
+            status: "confirmed"
+        })
+            .populate({
+                path: "product",
+                select: "productName description priceInCrypto category"
+            })
+            .populate({
+                path: "ngo",
+                select: "ngoName address"
+            })
+            .populate({
+                path: "sender",
+                select: "name email walletAddress"
+            })
+            .sort({ createdAt: -1 });
+
+        // Calculate summary stats
+        const totalSales = productSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+        const totalProducts = productSales.length;
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    sales: productSales,
+                    summary: {
+                        totalSales,
+                        totalProducts,
+                        totalTransactions: productSales.length
+                    }
+                },
+                "Product sales history fetched successfully."
+            )
+        );
+    } catch (error) {
+        console.error("Error fetching product sales history:", error);
+        throw new ApiError(500, "Failed to fetch product sales history.");
+    }
+});
+
 export { 
     countUsers,
-    countNGOAdmins 
+   countNGOAdmins,
+    getProductSalesHistory
 };

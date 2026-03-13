@@ -30,20 +30,26 @@ export default function UserDashboard() {
       const user = JSON.parse(localStorage.getItem("user_data") || "{}");
       setUserData(user);
 
-      // Load transactions
-      const txResult = await apiClient.transactions.getAll();
+  // Load dashboard statistics using new endpoint
+      const statsResult = await apiClient.transactions.getDashboardStats();
+      if (statsResult.success && statsResult.data) {
+        setStats({
+          totalDonated: statsResult.data.totalDonated || 0,
+          caseDonations: statsResult.data.caseDonations || 0,
+          productDonations: statsResult.data.productDonations || 0,
+        });
+      }
+
+      // Load recent transactions
+      const txResult = await apiClient.transactions.getPaymentHistory();
       if (txResult.success) {
         setTransactions(txResult.data || []);
         
-        // Calculate stats
-        const total = txResult.data.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0);
-        const caseDonations = txResult.data.filter((tx: any) => tx.transactionType === 'case-donation').length;
-        const productDonations = txResult.data.filter((tx: any) => tx.transactionType === 'product-donation').length;
         
-        setStats({ totalDonated: total, caseDonations, productDonations });
       }
     } catch (error) {
       console.error("Error loading dashboard:", error);
+      toast.error("Failed to load dashboard data");
     } finally {
       setIsLoading(false);
     }
@@ -173,7 +179,8 @@ export default function UserDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+         
           <button
             onClick={() => router.push("/ngos")}
             className="p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center font-medium"
@@ -191,6 +198,12 @@ export default function UserDashboard() {
             className="p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-center font-medium"
           >
             Donate Products
+          </button>
+          <button
+            onClick={() => router.push("/user/payment-history")}
+            className="p-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-center font-medium"
+          >
+            Payment History
           </button>
         </div>
       </main>

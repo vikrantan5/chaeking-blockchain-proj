@@ -12,10 +12,13 @@ export default function ProductDetailsPage() {
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [ngos, setNgos] = useState<any[]>([]);
+  const [selectedNgoId, setSelectedNgoId] = useState("");
 
   useEffect(() => {
     if (slug) {
       fetchProductDetails();
+      fetchApprovedNGOs();
     }
   }, [slug]);
 
@@ -36,25 +39,39 @@ export default function ProductDetailsPage() {
     }
   };
 
-const handleDonate = async () => {
-  const ngoWalletAddress =
-    product?.associatedNGO?.walletAddress ||
-product?.associatedNGO?.registeredBy?.walletAddress ||
-    product?.associatedNGO?.wallet;
+  const fetchApprovedNGOs = async () => {
+    try {
+      const result = await apiClient.ngos.getAll({ approvalStatus: 'approved' });
+      if (result.success) {
+        setNgos(result.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching NGOs:", err);
+    }
+  };
 
-  const totalPrice = product.priceInCrypto * quantity;
+  const handleDonate = async () => {
+    const totalPrice = product.priceInCrypto * quantity;
 
-  if (quantity <= 0 || quantity > product.stockQuantity) {
-    toast.error("Please enter a valid quantity");
-    return;
-  }
-    
-   if (!ngoWalletAddress) {
-      toast.error("Product NGO wallet address not found");
+    if (quantity <= 0 || quantity > product.stockQuantity) {
+      toast.error("Please enter a valid quantity");
       return;
     }
-      if (!product?.associatedNGO?._id) {
-      toast.error("Associated NGO not found for this product");
+
+    if (!selectedNgoId) {
+      toast.error("Please select an NGO to donate to");
+      return;
+    }
+
+    const selectedNgo = ngos.find(ngo => ngo._id === selectedNgoId);
+    if (!selectedNgo) {
+      toast.error("Selected NGO not found");
+      return;
+    }
+
+    const ngoWalletAddress = selectedNgo.walletAddress || selectedNgo.registeredBy?.walletAddress;
+    if (!ngoWalletAddress) {
+      toast.error("NGO wallet address not found");
       return;
     }
 
@@ -99,23 +116,23 @@ product?.associatedNGO?.registeredBy?.walletAddress ||
       // Send donation
       const tx = await contract.donateProduct(
         productIdBytes32,
-         ngoWalletAddress,
+        ngoWalletAddress,
         { value: ethers.parseEther(totalPrice.toString()) }
       );
 
       toast.info("Transaction submitted. Waiting for confirmation...");
       const receipt = await tx.wait();
-       const receiptAny = receipt as any;
+      const receiptAny = receipt as any;
       const txAny = tx as any;
       const gasPrice = receiptAny?.gasPrice ?? receiptAny?.effectiveGasPrice ?? txAny?.gasPrice ?? 0n;
       const gasUsed = receiptAny?.gasUsed ?? 0n;
       const transactionFee = gasUsed * gasPrice;
 
       // Record in backend
-const saveResult = await apiClient.products.donate(product._id, {
-        ngoId: product.associatedNGO._id,
-            txHash: receipt.hash,
-           gasPrice: Number(gasPrice),
+      const saveResult = await apiClient.products.donate(product._id, {
+        ngoId: selectedNgoId,
+        txHash: receipt.hash,
+        gasPrice: Number(gasPrice),
         transactionFee: Number(transactionFee),
         quantity,
       });
@@ -125,8 +142,9 @@ const saveResult = await apiClient.products.donate(product._id, {
         return;
       }
 
-      toast.success("Product donation successful! Thank you! 🎉");
+      toast.success(`Product donation successful to ${selectedNgo.ngoName}! Thank you! 🎉`);
       setQuantity(1);
+      setSelectedNgoId("");
       
       // Refresh product details
       await fetchProductDetails();
@@ -139,7 +157,6 @@ const saveResult = await apiClient.products.donate(product._id, {
       }
     }
   };
-//   };
 
   if (loading) {
     return (
@@ -264,8 +281,25 @@ const saveResult = await apiClient.products.donate(product._id, {
                 <div className="bg-white/20 rounded-lg p-4 mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Info className="w-5 h-5" />
-                    <span className="font-medium">Your donation will help NGOs provide essential items</span>
+                    <span className="font-medium">Select an NGO to donate this product to</span>
                   </div>
+                </div>
+
+                {/* NGO Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Select NGO *</label>
+                  <select
+                    value={selectedNgoId}
+                    onChange={(e) => setSelectedNgoId(e.target.value)}
+                    className="w-full px-4 py-3 border border-white/30 bg-white/10 rounded-lg text-white placeholder-white/60 focus:ring-2 focus:ring-white/50 outline-none"
+                  >
+                    <option value="" className="text-gray-800">Choose an NGO...</option>
+                    {ngos.map((ngo) => (
+                      <option key={ngo._id} value={ngo._id} className="text-gray-800">
+                        {ngo.ngoName} - {ngo.address?.city || 'N/A'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="mb-4">
@@ -291,28 +325,11 @@ const saveResult = await apiClient.products.donate(product._id, {
 
                 <button
                   onClick={handleDonate}
-                  className="w-full bg-white text-orange-600 py-4 rounded-lg font-bold text-lg hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                  disabled={!selectedNgoId}
+                  className="w-full bg-white text-orange-600 py-4 rounded-lg font-bold text-lg hover:bg-orange-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart className="w-6 h-6" />
                   Donate {quantity} {quantity > 1 ? 'Items' : 'Item'}
-                </button>
-              </div>
-            )}
-
-            {/* Associated NGO */}
-            {product.associatedNGO && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold mb-3 text-gray-800">Preferred NGO</h3>
-                <button
-                  onClick={() => {
-                    if (product.associatedNGO._id) {
-                      router.push(`/ngos/${product.associatedNGO._id}`);
-                    }
-                  }}
-                  className="w-full text-left p-4 border border-gray-200 rounded-lg hover:border-orange-500 transition-colors"
-                >
-                  <p className="font-bold text-gray-800">{product.associatedNGO.ngoName}</p>
-                  <p className="text-sm text-gray-600 mt-1">View NGO Profile →</p>
                 </button>
               </div>
             )}

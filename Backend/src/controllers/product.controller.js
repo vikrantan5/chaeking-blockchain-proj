@@ -14,7 +14,7 @@ export const createProduct = asyncHandler(async (req, res) => {
         description,
         priceInCrypto,
         stockQuantity,
-        associatedNGO,
+        
         specifications
     } = req.body;
 
@@ -23,16 +23,7 @@ export const createProduct = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All required fields must be provided");
     }
 
-    // If NGO is specified, verify it exists and is approved
-    if (associatedNGO) {
-        const ngo = await NGO.findById(associatedNGO);
-        if (!ngo) {
-            throw new ApiError(404, "NGO not found");
-        }
-        if (ngo.approvalStatus !== 'approved') {
-            throw new ApiError(400, "NGO must be approved");
-        }
-    }
+
 
     // Handle file uploads (product images)
     let imageUrls = [];
@@ -44,22 +35,20 @@ export const createProduct = asyncHandler(async (req, res) => {
         }
     }
 
-    // Create product
+// Create product WITHOUT associatedNGO (donors will select NGO during donation)
     const product = await Product.create({
         productName,
         category,
         description,
         priceInCrypto: parseFloat(priceInCrypto),
         stockQuantity: parseInt(stockQuantity),
-        associatedNGO: associatedNGO || null,
+         associatedNGO: null, // No NGO assigned - donors choose
         specifications,
         images: imageUrls,
         createdBy: req.user._id
     });
 
-    if (associatedNGO) {
-        await product.populate('associatedNGO', 'ngoName address.city');
-    }
+
 
     return res.status(201).json(
         new ApiResponse(201, product, "Product created successfully")
@@ -203,19 +192,14 @@ export const recordProductDonation = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Product is out of stock");
     }
 
-    // Verify NGO
+ // Verify NGO is approved (donor can select any approved NGO)
     const ngo = await NGO.findById(ngoId);
     if (!ngo) {
         throw new ApiError(404, "NGO not found");
     }
 
     if (ngo.approvalStatus !== 'approved') {
-        throw new ApiError(400, "NGO must be approved");
-    }
-
-    // If product is associated with specific NGO, ensure it matches
-    if (product.associatedNGO && product.associatedNGO.toString() !== ngoId) {
-        throw new ApiError(400, "Product can only be donated to its associated NGO");
+       throw new ApiError(400, "NGO must be approved to receive donations");
     }
 
     // Update product stats
@@ -236,7 +220,7 @@ export const recordProductDonation = asyncHandler(async (req, res) => {
         status: 'confirmed',
         gasPrice: gasPrice || 0,
         transactionFee: transactionFee || 0,
-        purpose: `Product donation: ${product.productName} x${parsedQuantity}`,
+       purpose: `Product donation: ${product.productName} x${parsedQuantity} to ${ngo.ngoName}`,
         product: productId,
         ngo: ngoId,
         cryptoType: 'matic'

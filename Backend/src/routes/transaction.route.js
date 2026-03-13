@@ -11,7 +11,9 @@ import {
     getTotalDonations,
     getUserTotalDonations,
       getUserMonthlyDonation,
-    recordBlockchainDonation
+   recordBlockchainDonation,
+    getUserDashboardStats,
+    getUserPaymentHistory
 } from "../controllers/transaction.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/role.middleware.js";
@@ -32,6 +34,9 @@ router.route("/temple-donated-amount").get(verifyJWT, authorizeRoles("user"), ge
 
 // Blockchain donation routes
 router.route("/blockchain-donation").post(verifyJWT, authorizeRoles("user"), recordBlockchainDonation);
+// User dashboard & payment history
+router.route("/dashboard-stats").get(verifyJWT, authorizeRoles("user"), getUserDashboardStats);
+router.route("/payment-history").get(verifyJWT, authorizeRoles("user"), getUserPaymentHistory);
 
 
 export default router

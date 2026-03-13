@@ -284,6 +284,34 @@ const token = sessionStorage.getItem('accessToken');
       });
       return response.json();
     },
+     getDashboardStats: async () => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/transactions/dashboard-stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    getPaymentHistory: async () => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/transactions/payment-history`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+      return response.json();
+    },
+  },
+
+  // SuperAdmin Dashboard APIs
+  superAdminDashboard: {
+    getProductSales: async () => {
+      const token = sessionStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/superAdminDashboard/product-sales`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+      return response.json();
+    },
   },
 };
 
