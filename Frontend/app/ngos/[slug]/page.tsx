@@ -18,6 +18,13 @@ import {
 import { toast } from "react-toastify";
 import { apiClient } from "../../utils/api";
 
+// Add window ethereum type declaration
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 interface NGO {
   _id: string;
   ngoName: string;
@@ -46,7 +53,7 @@ interface NGO {
   registeredBy: {
     name: string;
     email: string;
-     walletAddress?: string;
+    walletAddress?: string;
   };
 }
 
@@ -59,15 +66,15 @@ export default function NGODetailPage() {
   const [isDonating, setIsDonating] = useState(false);
 
   useEffect(() => {
-    if (params.slug) {
+    if (params?.slug) {
       fetchNGODetails();
     }
-  }, [params.slug]);
+  }, [params?.slug]);
 
   const fetchNGODetails = async () => {
     try {
       setIsLoading(true);
-      const result = await apiClient.ngos.getById(params.slug as string);
+      const result = await apiClient.ngos.getById(params?.slug as string);
       if (result.success) {
         setNgo(result.data);
       } else {
@@ -84,28 +91,48 @@ export default function NGODetailPage() {
   };
 
   const handleDonate = async () => {
-      const ngoWalletAddress = ngo?.walletAddress || ngo?.registeredBy?.walletAddress;
+    if (!ngo) {
+      toast.error("NGO information not available");
+      return;
+    }
+
+    const ngoWalletAddress = ngo?.walletAddress || ngo?.registeredBy?.walletAddress;
 
     if (!donationAmount || parseFloat(donationAmount) <= 0) {
       toast.error("Please enter a valid donation amount");
       return;
     }
-      if (!ngoWalletAddress) {
+    
+    if (!ngoWalletAddress) {
       toast.error("NGO wallet address not found");
       return;
     }
 
     const accessToken = sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken");
     const userData = localStorage.getItem("user_data");
-    if (!accessToken || !userData || JSON.parse(userData).role !== "user") {
-      toast.error("Please login as user to donate");
+    
+    if (!accessToken || !userData) {
+      toast.error("Please login to donate");
       router.push("/login");
       return;
     }
 
-    setIsDonating(true);
     try {
-        const { ethers } = await import("ethers");
+      const userDataObj = JSON.parse(userData);
+      if (userDataObj.role !== "user") {
+        toast.error("Please login as a user to donate");
+        router.push("/login");
+        return;
+      }
+    } catch (e) {
+      toast.error("Invalid user data");
+      return;
+    }
+
+    setIsDonating(true);
+    
+    try {
+      const { ethers } = await import("ethers");
 
       // Check MetaMask
       if (typeof window === "undefined" || !window.ethereum) {
@@ -115,9 +142,18 @@ export default function NGODetailPage() {
       }
 
       const provider = new ethers.BrowserProvider(window.ethereum);
+      
+      // Request account access
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      
       const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
 
-      // Get contract
+      // Check user's wallet balance
+      const balance = await provider.getBalance(userAddress);
+      const donationAmountWei = ethers.parseEther(donationAmount);
+
+      // Estimate gas for the transaction
       const contractAddress = process.env.NEXT_PUBLIC_NGO_FUND_ADDRESS;
       if (!contractAddress) {
         toast.error("Contract address not configured");
@@ -127,28 +163,73 @@ export default function NGODetailPage() {
       const contractABI = [
         "function donateEthToNGO(address ngo) payable"
       ];
+      
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      
+      // Estimate gas cost
+      let estimatedGas;
+      try {
+        estimatedGas = await contract.donateEthToNGO.estimateGas(ngoWalletAddress, {
+          value: donationAmountWei
+        });
+      } catch (estimateError: any) {
+        console.error("Gas estimation error:", estimateError);
+        if (estimateError.message?.includes("NGO is not registered")) {
+          toast.error("This NGO is not yet registered on the blockchain. Please contact the administrator.");
+        } else if (estimateError.message?.includes("insufficient funds")) {
+          toast.error("Insufficient funds for gas estimation");
+        } else {
+          toast.error("Unable to estimate transaction cost. Please check your inputs.");
+        }
+        return;
+      }
+
+      const feeData = await provider.getFeeData();
+      const gasPrice = feeData.gasPrice || 0n;
+      const estimatedGasCost = estimatedGas * gasPrice;
+      const totalRequired = donationAmountWei + estimatedGasCost;
+
+      // Check if user has sufficient balance
+      if (balance < totalRequired) {
+        const balanceEth = ethers.formatEther(balance);
+        const requiredEth = ethers.formatEther(totalRequired);
+        const donationEth = ethers.formatEther(donationAmountWei);
+        const gasCostEth = ethers.formatEther(estimatedGasCost);
+        
+        toast.error(
+          `Insufficient funds!\n\n` +
+          `Your balance: ${parseFloat(balanceEth).toFixed(4)} ETH\n` +
+          `Donation: ${donationEth} ETH\n` +
+          `Est. Gas: ${parseFloat(gasCostEth).toFixed(4)} ETH\n` +
+          `Total needed: ${parseFloat(requiredEth).toFixed(4)} ETH\n\n` +
+          `Please add more ETH to your wallet.`,
+          { autoClose: 8000 }
+        );
+        return;
+      }
 
       toast.info("Please confirm the transaction in MetaMask...");
 
       // Send donation
-       const tx = await contract.donateEthToNGO(ngoWalletAddress, {
-        value: ethers.parseEther(donationAmount)
+      const tx = await contract.donateEthToNGO(ngoWalletAddress, {
+        value: donationAmountWei
       });
 
       toast.info("Transaction submitted. Waiting for confirmation...");
       const receipt = await tx.wait();
+      
+      // Safely extract gas information
       const receiptAny = receipt as any;
       const txAny = tx as any;
-      const gasPrice = receiptAny?.gasPrice ?? receiptAny?.effectiveGasPrice ?? txAny?.gasPrice ?? 0n;
+      const finalGasPrice = receiptAny?.gasPrice ?? receiptAny?.effectiveGasPrice ?? txAny?.gasPrice ?? 0n;
       const gasUsed = receiptAny?.gasUsed ?? 0n;
-      const transactionFee = gasUsed * gasPrice;
+      const transactionFee = gasUsed * finalGasPrice;
 
       // Record in backend
-             const saveResult = await apiClient.ngo.donate(ngo._id, {
+      const saveResult = await apiClient.ngo.donate(ngo._id, {
         amount: parseFloat(donationAmount),
-            txHash: receipt.hash,
-            gasPrice: Number(gasPrice),
+        txHash: receipt.hash,
+        gasPrice: Number(finalGasPrice),
         transactionFee: Number(transactionFee)
       });
 
@@ -159,13 +240,21 @@ export default function NGODetailPage() {
 
       toast.success("Donation successful! Thank you for your support! 🎉");
       setDonationAmount("");
-    // Refresh NGO details to show updated donation amount
+      
+      // Refresh NGO details to show updated donation amount
       await fetchNGODetails();
+      
     } catch (error: any) {
       console.error("Donation error:", error);
-     if (error.code === 4001) {
+      
+      // Handle specific error cases
+      if (error.code === 4001 || error.code === "ACTION_REJECTED") {
         toast.error("Transaction rejected by user");
-      } else if (error.code === "ACTION_REJECTED") {
+      } else if (error.message?.includes("insufficient funds")) {
+        toast.error("Insufficient funds in your wallet. Please add more ETH and try again.");
+      } else if (error.message?.includes("NGO is not registered")) {
+        toast.error("This NGO is not registered on the blockchain yet. Please contact support.");
+      } else if (error.message?.includes("user rejected")) {
         toast.error("Transaction rejected");
       } else {
         toast.error(error.message || "Donation failed. Please try again.");
@@ -188,7 +277,7 @@ export default function NGODetailPage() {
   }
 
   return (
-   <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50" data-testid="ngo-detail-page">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50" data-testid="ngo-detail-page">
       {/* Hero Section with Cover Image */}
       <div className="relative h-96 bg-gradient-to-r from-blue-600 to-indigo-700">
         {ngo.coverImage ? (
@@ -221,7 +310,7 @@ export default function NGODetailPage() {
               <CheckCircle className="w-6 h-6 text-green-400 mr-2" />
               <span className="text-green-400 font-semibold">Verified NGO</span>
             </div>
-           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="ngo-detail-name">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="ngo-detail-name">
               {ngo.ngoName}
             </h1>
             <div className="flex items-center text-white/90">
@@ -242,7 +331,7 @@ export default function NGODetailPage() {
             {/* About Section */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">About Us</h2>
-  <p className="text-gray-600 leading-relaxed mb-6" data-testid="ngo-detail-description">{ngo.description}</p>
+              <p className="text-gray-600 leading-relaxed mb-6" data-testid="ngo-detail-description">{ngo.description}</p>
 
               <h3 className="text-xl font-bold text-gray-800 mb-3">Our Mission</h3>
               <p className="text-gray-600 leading-relaxed">{ngo.mission}</p>
@@ -344,7 +433,7 @@ export default function NGODetailPage() {
                       Amount (ETH)
                     </label>
                     <input
-                    data-testid="ngo-detail-donation-amount-input"
+                      data-testid="ngo-detail-donation-amount-input"
                       type="number"
                       step="0.001"
                       min="0"
@@ -357,9 +446,9 @@ export default function NGODetailPage() {
 
                   <button
                     onClick={handleDonate}
-                    disabled={isDonating || !donationAmount}
+                    disabled={isDonating || !donationAmount || parseFloat(donationAmount) <= 0}
                     className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                     data-testid="ngo-detail-donate-button"
+                    data-testid="ngo-detail-donate-button"
                   >
                     {isDonating ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -393,7 +482,7 @@ export default function NGODetailPage() {
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">NGO Wallet Address</p>
                 <p className="text-xs font-mono text-gray-800 break-all">
-                    {ngo.walletAddress || ngo.registeredBy?.walletAddress || "Not set"}
+                  {ngo.walletAddress || ngo.registeredBy?.walletAddress || "Not set"}
                 </p>
               </div>
 

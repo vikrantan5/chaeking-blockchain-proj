@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { Building2, ArrowLeft, Upload } from "lucide-react";
+import { Building2, ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { apiClient } from "../../utils/api";
 
 export default function NGORegistration() {
@@ -22,6 +22,9 @@ export default function NGORegistration() {
     website: "",
     focusAreas: [] as string[]
   });
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string>("");
+  const [verificationDocs, setVerificationDocs] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const focusAreaOptions = [
@@ -40,6 +43,36 @@ export default function NGORegistration() {
         ? prev.focusAreas.filter(a => a !== area)
         : [...prev.focusAreas, area]
     }));
+  };
+
+
+   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error("Cover image must be less than 5MB");
+        return;
+      }
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleVerificationDocsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (verificationDocs.length + files.length > 10) {
+      toast.error("Maximum 10 verification documents allowed");
+      return;
+    }
+    setVerificationDocs(prev => [...prev, ...files]);
+  };
+
+  const removeVerificationDoc = (index: number) => {
+    setVerificationDocs(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +107,16 @@ export default function NGORegistration() {
         website: formData.website
       }));
       submitData.append("focusAreas", JSON.stringify(formData.focusAreas));
+
+      // Add cover image
+      if (coverImage) {
+        submitData.append("coverImage", coverImage);
+      }
+      
+      // Add verification documents
+      verificationDocs.forEach((doc) => {
+        submitData.append("verificationDocuments", doc);
+      });
 
       const result = await apiClient.ngos.register(submitData);
 
@@ -258,6 +301,106 @@ export default function NGORegistration() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Website (optional)"
               />
+            </div>
+          </div>
+
+
+          
+          {/* Cover Image Upload */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Cover Image</h3>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-green-500 transition-colors">
+                <input
+                  type="file"
+                  id="coverImage"
+                  accept="image/*"
+                  onChange={handleCoverImageChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="coverImage"
+                  className="flex flex-col items-center justify-center cursor-pointer"
+                >
+                  {coverImagePreview ? (
+                    <div className="relative w-full">
+                      <img
+                        src={coverImagePreview}
+                        alt="Cover preview"
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCoverImage(null);
+                          setCoverImagePreview("");
+                        }}
+                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">Click to upload cover image</p>
+                      <p className="text-xs text-gray-400">PNG, JPG up to 5MB</p>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Verification Documents Upload */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Verification Documents
+              <span className="text-sm font-normal text-gray-500 ml-2">(Registration certificate, 12A, 80G, etc.)</span>
+            </h3>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-green-500 transition-colors">
+                <input
+                  type="file"
+                  id="verificationDocs"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  multiple
+                  onChange={handleVerificationDocsChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="verificationDocs"
+                  className="flex flex-col items-center justify-center cursor-pointer"
+                >
+                  <Upload className="w-12 h-12 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600 mb-1">Click to upload documents</p>
+                  <p className="text-xs text-gray-400">PDF, PNG, JPG (Max 10 files)</p>
+                </label>
+              </div>
+
+              {verificationDocs.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Uploaded Documents ({verificationDocs.length})</p>
+                  <div className="space-y-2">
+                    {verificationDocs.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <span className="text-sm text-gray-700 truncate flex-1">{doc.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeVerificationDoc(index)}
+                          className="ml-2 p-1 text-red-500 hover:bg-red-50 rounded"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

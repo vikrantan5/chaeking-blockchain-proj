@@ -16,105 +16,174 @@ const emailForOtpVerification = (email, otp, purpose = "emailVerification") => {
 
     const { title, message } = purposes[purpose] || purposes.emailVerification;
 
-    return `
+    // Return object with proper email structure
+    return {
+        subject: `${title} - OTP Verification`,
+        html: `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>${title}</title>
     <style>
+        /* Inline styles are better for email clients */
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f4f4f9;
             margin: 0;
             padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         .email-container {
             max-width: 600px;
-            margin: 20px auto;
-            background: white;
+            margin: 0 auto;
+            background: #ffffff;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             overflow: hidden;
         }
         .email-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
+            color: #ffffff;
+            padding: 30px 20px;
             text-align: center;
         }
+        .email-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
         .email-body {
-            padding: 30px;
-            color: #333;
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+        }
+        .email-body p {
+            margin: 0 0 20px 0;
+            font-size: 16px;
         }
         .otp-box {
             background: #f8f9fa;
             border: 2px dashed #667eea;
             border-radius: 8px;
-            padding: 20px;
+            padding: 25px 20px;
             text-align: center;
-            margin: 20px 0;
+            margin: 30px 0;
+        }
+        .otp-label {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         .otp-code {
-            font-size: 32px;
+            font-size: 42px;
             font-weight: bold;
             color: #667eea;
             letter-spacing: 8px;
-            margin: 10px 0;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            line-height: 1.2;
         }
         .expiry-text {
             color: #e74c3c;
             font-size: 14px;
-            margin-top: 10px;
+            margin: 10px 0 0 0;
+            font-weight: 500;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .warning-box strong {
+            color: #856404;
+            font-size: 15px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .warning-box p {
+            margin: 0;
+            font-size: 14px;
+            color: #856404;
         }
         .email-footer {
             background: #f8f9fa;
-            padding: 20px;
+            padding: 30px 20px;
             text-align: center;
-            font-size: 12px;
-            color: #666;
+            font-size: 13px;
+            color: #666666;
+            border-top: 1px solid #e9ecef;
         }
-        .warning {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
+        .email-footer p {
+            margin: 5px 0;
+        }
+        .email-footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 30px 20px;
+            }
+            .otp-code {
+                font-size: 32px;
+                letter-spacing: 4px;
+            }
         }
     </style>
 </head>
-<body>
-    <div class="email-container">
-        <div class="email-header">
-            <h1>🔐 ${title}</h1>
-        </div>
-        
-        <div class="email-body">
-            <p>Hello,</p>
-            <p>${message}</p>
-            
-            <div class="otp-box">
-                <p style="margin: 0; font-size: 14px; color: #666;">Your verification code is:</p>
-                <div class="otp-code">${otp}</div>
-                <p class="expiry-text">⏰ This OTP will expire in 10 minutes</p>
+<body style="margin: 0; padding: 0; background-color: #f4f4f9;">
+    <div style="padding: 20px 10px;">
+        <div class="email-container">
+            <!-- Header -->
+            <div class="email-header">
+                <h1 style="margin: 0;">🔐 ${title}</h1>
             </div>
             
-            <div class="warning">
-                <strong>⚠️ Security Notice:</strong>
-                <p style="margin: 5px 0 0 0; font-size: 13px;">
-                    Never share this OTP with anyone. Our team will never ask for your OTP via phone or email.
+            <!-- Body -->
+            <div class="email-body">
+                <p style="margin: 0 0 20px 0;">Hello,</p>
+                <p style="margin: 0 0 20px 0;">${message}</p>
+                
+                <!-- OTP Box -->
+                <div class="otp-box">
+                    <p class="otp-label" style="margin: 0 0 10px 0;">Your verification code is:</p>
+                    <div class="otp-code" style="font-size: 42px; font-weight: bold; color: #667eea; letter-spacing: 8px; margin: 15px 0;">${otp}</div>
+                    <p class="expiry-text" style="margin: 10px 0 0 0;">⏰ This OTP will expire in 10 minutes</p>
+                </div>
+                
+                <!-- Security Notice -->
+                <div class="warning-box">
+                    <strong style="color: #856404; font-size: 15px; display: block; margin-bottom: 8px;">⚠️ Security Notice:</strong>
+                    <p style="margin: 0; font-size: 14px; color: #856404;">Never share this OTP with anyone. Our team will never ask for your OTP via phone or email.</p>
+                </div>
+                
+                <p style="margin: 0;">If you didn't request this verification, please ignore this email.</p>
+            </div>
+            
+            <!-- Footer -->
+            <div class="email-footer">
+                <p style="margin: 5px 0;">© 2025 NGO Donation Platform. All rights reserved.</p>
+                <p style="margin: 5px 0;">This is an automated email. Please do not reply.</p>
+                <p style="margin: 10px 0 0 0;">
+                    <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> • 
+                    <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
                 </p>
             </div>
-            
-            <p>If you didn't request this verification, please ignore this email.</p>
-        </div>
-        
-        <div class="email-footer">
-            <p>© 2025 NGO Donation Platform. All rights reserved.</p>
-            <p>This is an automated email. Please do not reply.</p>
         </div>
     </div>
 </body>
 </html>
-    `;
+        `,
+        text: `${title}\n\nHello,\n\n${message}\n\nYour verification code is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nSecurity Notice: Never share this OTP with anyone. Our team will never ask for your OTP via phone or email.\n\nIf you didn't request this verification, please ignore this email.\n\n© 2025 NGO Donation Platform. All rights reserved.`
+    };
 };
 
 export { emailForOtpVerification };

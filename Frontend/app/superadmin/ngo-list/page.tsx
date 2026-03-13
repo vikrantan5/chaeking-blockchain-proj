@@ -57,6 +57,11 @@ const loadNGOs = async () => {
           <div className="p-10 flex items-center justify-center" data-testid="ngo-list-loading">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
+           ): ngos.length === 0 ? (
+          <div className="p-10 text-center text-gray-500" data-testid="ngo-list-empty">
+            <p className="text-lg font-medium">No NGOs found</p>
+            <p className="text-sm mt-2">NGOs will appear here once they are registered.</p>
+          </div>
         ) : (
           <table className="min-w-full" data-testid="ngo-list-table">
             <thead>

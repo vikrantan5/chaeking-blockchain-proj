@@ -8,6 +8,7 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { emailForOtpVerification } from "../utils/emailTemplateForOTP.js";
 import { Transaction } from "../models/transaction.model.js";
 import mongoose from "mongoose";
+import { registerNGOOnBlockchain } from "../utils/blockchain.js";
 
 
 
@@ -431,13 +432,7 @@ export const approveNGO = asyncHandler(async (req, res) => {
         throw new ApiError(400, "NGO is already approved");
     }
 
-    ngo.approvalStatus = 'approved';
-    ngo.approvedBy = req.user._id;
-    ngo.approvalDate = new Date();
-    ngo.approvalRemarks = remarks || "";
-    ngo.rejectionReason = null; // Clear any previous rejection reason
-    
-    await ngo.save();
+
 
  // Update user role and status to allow dashboard access
     const user = await User.findByIdAndUpdate(
@@ -456,9 +451,34 @@ export const approveNGO = asyncHandler(async (req, res) => {
     
     if (!ngo.walletAddress && user?.walletAddress) {
         ngo.walletAddress = user.walletAddress;
-        await ngo.save();
+          }
+
+    // Ensure we have a wallet address for blockchain registration
+    const walletToRegister = ngo.walletAddress || user?.walletAddress;
+    if (!walletToRegister) {
+        throw new ApiError(400, "NGO wallet address is required for approval. Please ensure the NGO has a wallet address.");
     }
 
+    // Register NGO on blockchain BEFORE marking as approved in database
+    console.log(`Attempting to register NGO ${ngo.ngoName} (${walletToRegister}) on blockchain...`);
+    const blockchainResult = await registerNGOOnBlockchain(walletToRegister);
+    
+    if (!blockchainResult.success) {
+        console.error("Blockchain registration failed:", blockchainResult.error);
+        throw new ApiError(500, `Failed to register NGO on blockchain: ${blockchainResult.error}. Please ensure Hardhat node is running and try again.`);
+    }
+
+    console.log(`✅ NGO successfully registered on blockchain. TxHash: ${blockchainResult.txHash || 'Already registered'}`);
+
+    // Now update the NGO status in database
+    ngo.approvalStatus = 'approved';
+    ngo.approvedBy = req.user._id;
+    ngo.approvalDate = new Date();
+    ngo.approvalRemarks = remarks || "";
+    ngo.rejectionReason = null; // Clear any previous rejection reason
+    ngo.walletAddress = walletToRegister; // Ensure wallet is saved
+    
+    await ngo.save();
     // Send approval email notification
     
     if (user && user.email) {
