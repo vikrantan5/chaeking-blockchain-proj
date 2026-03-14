@@ -99,7 +99,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const otpEmail = emailForOtpVerification(user.email, otp, "emailVerification");
     try {
-        await sendEmail(user.email, "Email Verification OTP", otpEmail);
+        await sendEmail(user.email, "Email Verification OTP", otpEmail.html);
     } catch (error) {
         throw new ApiError(500, "Something went wrong while sending email")
     }
@@ -380,7 +380,7 @@ const requestPasswordReset = asyncHandler(async (req, res) => {
 
     const otpEmail = emailForOtpVerification(user.email, otp, "passwordReset");
     try {
-        await sendEmail(user.email, "Password Reset OTP", otpEmail);
+        await sendEmail(user.email, "Password Reset OTP", otpEmail.html);
     } catch (error) {
         throw new ApiError(500, "Something went wrong while sending email")
     }
