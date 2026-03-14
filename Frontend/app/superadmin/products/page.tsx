@@ -14,7 +14,7 @@ export default function SuperAdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
-  const [approvedNgos, setApprovedNgos] = useState<any[]>([]);
+
   const [stockDrafts, setStockDrafts] = useState<Record<string, number>>({});
   const [form, setForm] = useState({
     productName: "",
@@ -22,7 +22,7 @@ export default function SuperAdminProductsPage() {
     description: "",
     priceInCrypto: "",
     stockQuantity: "",
-    associatedNGO: "",
+   
     specifications: "",
   });
   const [images, setImages] = useState<FileList | null>(null);
@@ -42,19 +42,13 @@ export default function SuperAdminProductsPage() {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const [productsResult, ngoResult] = await Promise.all([
-        apiClient.products.getAll(),
-        apiClient.ngos.getAll({ status: "approved", limit: 200 }),
-      ]);
+    const productsResult = await apiClient.products.getAll();
 
       if (productsResult.success) {
         setProducts(Array.isArray(productsResult.data) ? productsResult.data : []);
       }
 
-      if (ngoResult.success) {
-        const ngoList = Array.isArray(ngoResult.data) ? ngoResult.data : ngoResult.data?.ngos || [];
-        setApprovedNgos(ngoList);
-      }
+      
     } catch (error) {
       console.error(error);
       toast.error("Failed to load product management data");
@@ -75,9 +69,7 @@ export default function SuperAdminProductsPage() {
     formData.append("description", form.description);
     formData.append("priceInCrypto", form.priceInCrypto);
     formData.append("stockQuantity", form.stockQuantity);
-    if (form.associatedNGO) {
-      formData.append("associatedNGO", form.associatedNGO);
-    }
+
     if (form.specifications) {
       formData.append("specifications", form.specifications);
     }
@@ -100,7 +92,7 @@ export default function SuperAdminProductsPage() {
         description: "",
         priceInCrypto: "",
         stockQuantity: "",
-        associatedNGO: "",
+       
         specifications: "",
       });
       setImages(null);
@@ -213,17 +205,7 @@ export default function SuperAdminProductsPage() {
               className="border border-gray-300 rounded-lg px-3 py-2"
               data-testid="superadmin-product-stock-input"
             />
-            <select
-              value={form.associatedNGO}
-              onChange={(e) => setForm((prev) => ({ ...prev, associatedNGO: e.target.value }))}
-              className="border border-gray-300 rounded-lg px-3 py-2"
-              data-testid="superadmin-product-ngo-select"
-            >
-              <option value="">Any approved NGO</option>
-              {approvedNgos.map((ngo) => (
-                <option key={ngo._id} value={ngo._id}>{ngo.ngoName}</option>
-              ))}
-            </select>
+         
             <input
               onChange={(e) => setImages(e.target.files)}
               type="file"
@@ -267,7 +249,7 @@ export default function SuperAdminProductsPage() {
                 <tr className="border-b border-gray-200 text-left">
                   <th className="py-3">Name</th>
                   <th className="py-3">Category</th>
-                  <th className="py-3">NGO</th>
+                   <th className="py-3">Donation Target</th>
                   <th className="py-3">Price</th>
                   <th className="py-3">Stock</th>
                   <th className="py-3">Actions</th>
@@ -281,7 +263,11 @@ export default function SuperAdminProductsPage() {
                       <p className="text-xs text-gray-500">{product.totalDonated || 0} donated</p>
                     </td>
                     <td className="py-3 capitalize">{product.category}</td>
-                    <td className="py-3">{product.associatedNGO?.ngoName || "Any NGO"}</td>
+                     <td className="py-3">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        Donor Choice
+                      </span>
+                    </td>
                     <td className="py-3">{product.priceInCrypto} MATIC</td>
                     <td className="py-3">{product.stockQuantity}</td>
                     <td className="py-3">

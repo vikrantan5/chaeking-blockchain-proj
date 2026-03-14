@@ -39,16 +39,21 @@ export default function ProductDetailsPage() {
     }
   };
 
-  const fetchApprovedNGOs = async () => {
-    try {
-      const result = await apiClient.ngos.getAll({ approvalStatus: 'approved' });
-      if (result.success) {
-        setNgos(result.data || []);
-      }
-    } catch (err) {
-      console.error("Error fetching NGOs:", err);
+const fetchApprovedNGOs = async () => {
+  try {
+    const result = await apiClient.ngos.getAll({ approvalStatus: "approved" });
+
+    if (result.success) {
+      const ngoList = Array.isArray(result.data)
+        ? result.data
+        : result.data?.ngos || [];
+
+      setNgos(ngoList);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching NGOs:", err);
+  }
+};
 
   const handleDonate = async () => {
     const totalPrice = product.priceInCrypto * quantity;

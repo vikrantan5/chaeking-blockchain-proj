@@ -109,6 +109,14 @@ export default function SuperAdminDashboard() {
             >
               Manage Products
             </button>
+                <button
+              onClick={() => router.push('/superadmin/products/sales')}
+              className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+              data-testid="superadmin-go-sales-button"
+            >
+              <Package className="w-4 h-4" />
+              Product Sales History
+            </button>
           </div>
         </div>
 
